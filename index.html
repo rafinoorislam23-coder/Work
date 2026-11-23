@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101b33">
+<title>RAFINOOR | Multi-Zone Management</title>
+<style>
+:root{--nav:#101b33;--blue:#2864dc;--bg:#f3f6fb;--ink:#18243a;--muted:#718096;--line:#e4eaf2}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px system-ui,sans-serif}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+.login{min-height:100vh;display:grid;place-items:center;background:linear-gradient(135deg,#101b33,#254a7c);padding:18px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:15px}
+.login .panel{width:min(440px,100%);padding:28px}
+.brand{font-weight:900;font-size:23px;color:#17345f}
+.sub,.muted{color:var(--muted);font-size:12px}
+.field{display:grid;gap:6px;margin:12px 0}
+.field label{font-weight:650;font-size:12px}
+.field input,.field select,.field textarea{width:100%;padding:10px;border:1px solid #dce4ef;border-radius:8px;background:white}
+.btn{border:1px solid var(--line);background:white;padding:9px 13px;border-radius:8px;font-weight:650;font-size:12px}
+.primary{background:var(--blue);border-color:var(--blue);color:white}
+.danger{color:#c33}
+.layout{display:flex;min-height:100vh}
+.side{width:230px;background:var(--nav);color:white;padding:18px;flex-shrink:0}
+.side .brand{color:white;margin-bottom:22px}
+.nav{display:block;width:100%;text-align:left;border:0;background:none;color:#d1d9e8;padding:11px;border-radius:8px;margin:3px 0}
+.nav:hover,.nav.active{background:#263b5d}
+.main{flex:1;min-width:0}
+.top{height:62px;background:white;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:sticky;top:0;z-index:5}
+.content{padding:22px;max-width:1400px;margin:auto}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.stat{font-size:26px;font-weight:800}
+.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.tablewrap{overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+td,th{text-align:left;padding:10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--muted);background:#fafbfd}
+.notice{background:#fff4df;padding:12px;border-radius:8px;color:#80560c;font-size:12px;line-height:1.6}
+.ok{color:#16734e}
+.error{color:#c33}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fieldrow{display:grid;grid-template-columns:1.2fr 1fr .7fr .7fr auto;gap:7px;align-items:end;border:1px solid var(--line);padding:9px;border-radius:8px;margin:8px 0}
+.fieldrow input,.fieldrow select{min-width:0;width:100%;padding:8px;border:1px solid var(--line);border-radius:7px}
+.pill{padding:4px 8px;background:#eaf1ff;border-radius:20px;font-size:11px}
+.hide{display:none}.fcard{border:1px solid var(--line);border-radius:10px;padding:8px;margin:8px 0}.fr2{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin:6px 0}.fr2 input{padding:7px;border:1px solid var(--line);border-radius:7px;min-width:0}.calc{padding:10px;background:#eaf1ff;border-radius:8px;font-weight:700}.fieldrow{grid-template-columns:1.2fr 1fr auto auto auto}
+@media(max-width:850px){
+  .layout{display:block}
+  .side{width:auto;display:flex;overflow:auto;gap:5px;padding:8px}
+  .side .brand{display:none}
+  .nav{white-space:nowrap;width:auto}
+  .grid{grid-template-columns:repeat(2,1fr)}
+  .content{padding:13px}
+  .top{padding:0 12px}
+  .cols{grid-template-columns:1fr}
+  .fieldrow{grid-template-columns:1fr 1fr}
+  .fieldrow>*:first-child{grid-column:1/-1}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login" class="login">
+  <div class="panel">
+    <div class="brand">RAFINOOR</div>
+    <div class="sub">DYNAMIC MULTI-ZONE MANAGEMENT SYSTEM</div>
+    <h2>Sign in</h2>
+
+    <div class="field">
+      <label>Login Type</label>
+      <select id="loginType">
+        <option value="master">Master Admin Login</option>
+        <option value="admin">Admin Login</option>
+        <option value="user">User Login</option>
+      </select>
+    </div>
+
+    <div id="masterBox" class="field">
+      <label>Master Cloud Password</label>
+      <input id="masterPass" type="password" placeholder="Master password">
+    </div>
+
+    <div id="tokenBox" class="field hidden">
+      <label id="tokenLabel">Access Token</label>
+      <input id="tokenInput" placeholder="Your access token">
+    </div>
+
+    <button class="btn primary" style="width:100%" id="loginBtn">Login</button>
+    <p id="loginMsg" class="muted"></p>
+
+    <div class="notice">Master: cloud password. Admin / User: access token.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="layout hidden">
+  <aside class="side">
+    <div class="brand">RAFINOOR</div>
+    <button class="nav active" data-page="dashboard">▦ Dashboard</button>
+    <button class="nav" data-page="zones" data-role="master">◎ Zones</button>
+    <button class="nav" data-page="tokens" data-role="admin">⌘ Tokens</button>
+    <button class="nav" data-page="forms" data-role="admin">▤ Form Builder</button>
+    <button class="nav" data-page="submit" data-role="user">✎ My Forms</button>
+    <button class="nav" data-page="reports" data-role="admin">▥ Reports</button>
+    <button class="nav" data-page="logs" data-role="admin">☰ Audit Logs</button>
+    <button class="nav" data-page="settings" data-role="zone">⚙ Zone Settings</button>
+  </aside>
+  <main class="main">
+    <header class="top">
+      <b id="pageTitle">Dashboard</b>
+      <div class="row">
+        <span id="identity" class="pill"></span>
+        <button class="btn" id="logoutBtn">Logout</button>
+      </div>
+    </header>
+    <div class="content" id="view"></div>
+  </main>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getDatabase, ref, get, set, push, update, remove, onValue, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+const firebaseConfig={apiKey:"AIzaSyCUWbTvmbHfQpVe7B6-JKFHa-yuLQFJGbI",authDomain:"ft-server-b928d.firebaseapp.com",databaseURL:"https://ft-server-b928d-default-rtdb.firebaseio.com",projectId:"ft-server-b928d",storageBucket:"ft-server-b928d.firebasestorage.app",messagingSenderId:"123067166931",appId:"1:123067166931:web:73e4066f126e744daf6426",measurementId:"G-09SGQ45QYL"};
+const auth=getAuth(initializeApp(firebaseConfig)), db=getDatabase();
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let user=null,profile=null,page="dashboard",draft=null;
+const cache={zones:{},tokens:{},forms:{},records:{},auditLogs:{}},unsubs={};
+const zoneId=()=>profile?.zoneId||"", isMaster=()=>profile?.role==="master", isAdmin=()=>["master","zoneAdmin"].includes(profile?.role);
+const scoped=o=>Object.entries(o||{}).filter(([,v])=>isMaster()||v.zoneId===zoneId()||v.zoneId==="all");
+const zoneName=id=>id==="all"?"All Zones":(cache.zones[id]?.name||id||"—");
+const zoneOpts=(sel,all)=>(all?`<option value="all">All Zones</option>`:"")+Object.entries(cache.zones).map(([i,z])=>`<option value="${i}" ${sel===i?"selected":""}>${esc(z.name)}</option>`).join("");
+const msg=(s,e)=>{$("loginMsg").textContent=s;$("loginMsg").className=e?"error":"ok"};
+const sha=async t=>[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t)))].map(b=>b.toString(16).padStart(2,"0")).join("");
+const genToken=(n=12)=>{const c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",a=crypto.getRandomValues(new Uint32Array(n));return [...a].map(x=>c[x%c.length]).join("")};
+const log=(action,detail="")=>push(ref(db,"auditLogs"),{at:Date.now(),by:profile?.name||"",role:profile?.role||"",zoneId:zoneId(),action,detail}).catch(()=>{});
+const copyText=async t=>{try{await navigator.clipboard.writeText(t)}catch(e){const a=document.createElement("textarea");a.value=t;document.body.append(a);a.select();document.execCommand("copy");a.remove()}};
+const LOCAL_MASTER_PASSWORD="rafinoor2024";
+
+function updateLoginFields(){const t=$("loginType").value;$("masterBox").classList.toggle("hidden",t!=="master");$("tokenBox").classList.toggle("hidden",t==="master");$("tokenLabel").textContent=t==="admin"?"Admin Access Token":"User Access Token"}
+$("loginType").onchange=updateLoginFields;updateLoginFields();
+
+async function checkMaster(p){
+  if(p===LOCAL_MASTER_PASSWORD)return true;
+  const c=new AbortController(),t=setTimeout(()=>c.abort(),8000);
+  try{const r=await fetch("https://script.google.com/macros/s/AKfycbwulHNmaFIIKkJlyVri6Hf2UUJnyqJi0sXFklQGtyC-6s_5kVYrqDbwodK_4qF_RTpM/exec",{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"login",password:p}),signal:c.signal});
+    return JSON.parse(await r.text()).status==="success"}catch(e){return false}finally{clearTimeout(t)}
+}
+function watchToken(id){
+  if(unsubs.tok)unsubs.tok();
+  unsubs.tok=onValue(ref(db,"tokens/"+id),s=>{const t=s.val();
+    if(!t||t.active===false||(t.expiresAt&&t.expiresAt<Date.now())){alert("Your access was revoked or expired.");signOut(auth)}});
+}
+$("loginBtn").onclick=async()=>{
+  try{
+    msg("Connecting…");const type=$("loginType").value;
+    const uid=(await signInAnonymously(auth)).user.uid;user=auth.currentUser;
+    if(type==="master"){
+      const pw=$("masterPass").value.trim();if(!pw)throw Error("Enter master password");
+      if(!await checkMaster(pw))throw Error("Wrong master password");
+      const p={role:"master",name:"Master Admin",createdAt:Date.now()};
+      await set(ref(db,"userProfiles/"+uid),p);profile={uid,...p};
+    }else{
+      const token=$("tokenInput").value.trim().toUpperCase();if(!token)throw Error("Enter token");
+      const idx=(await get(ref(db,"tokenIndex/"+await sha(token)))).val();
+      if(!idx)throw Error("Invalid token");
+      if(idx.active===false)throw Error("Token is disabled");
+      if(idx.expiresAt&&idx.expiresAt<Date.now())throw Error("Token expired");
+      const tok=(await get(ref(db,"tokens/"+idx.tokenId))).val();
+      if(!tok||tok.active===false)throw Error("Token not found or revoked");
+      if(type==="admin"&&tok.role!=="zoneAdmin")throw Error("This is not an Admin token");
+      if(type==="user"&&tok.role==="zoneAdmin")throw Error("Use Admin Login for this token");
+      const z=(await get(ref(db,"zones/"+tok.zoneId))).val();
+      if(!z||z.active===false)throw Error("This zone is disabled");
+      const p={role:tok.role,zoneId:tok.zoneId,name:tok.name,tokenId:idx.tokenId,createdAt:Date.now()};
+      await set(ref(db,"userProfiles/"+uid),p);profile={uid,...p};watchToken(idx.tokenId);
+    }
+    msg("Login successful");log("login");showApp();
+  }catch(e){msg(e.message||"Login failed",true);try{await signOut(auth)}catch(_){}}
+};
+$("logoutBtn").onclick=()=>signOut(auth);
+function showApp(){$("login").classList.add("hidden");$("app").classList.remove("hidden");$("identity").textContent=(profile.name||"User")+" • "+profile.role;loadData();render()}
+onAuthStateChanged(auth,async u=>{
+  if(!u){user=null;profile=null;Object.values(unsubs).forEach(f=>f());$("app").classList.add("hidden");$("login").classList.remove("hidden");return}
+  if(profile&&profile.uid===u.uid)return;
+  try{user=u;const s=await get(ref(db,"userProfiles/"+u.uid));if(!s.exists())return;profile={uid:u.uid,...s.val()};if(profile.tokenId)watchToken(profile.tokenId);showApp()}catch(e){console.error(e)}
+});
+function loadData(){
+  ["zones","tokens","forms","records"].concat(isAdmin()?["auditLogs"]:[]).forEach(p=>{
+    if(unsubs[p])unsubs[p]();
+    const r=p==="auditLogs"?query(ref(db,p),limitToLast(300)):ref(db,p);
+    unsubs[p]=onValue(r,s=>{cache[p]=s.val()||{};if(profile&&!$("dialog"))render()});
+  });
+}
+document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>go(b.dataset.page));
+function go(p){page=p;document.querySelectorAll(".nav").forEach(b=>b.classList.toggle("active",b.dataset.page===p));render()}
+function allowedNav(){document.querySelectorAll(".nav").forEach(b=>{const r=b.dataset.role;b.classList.toggle("hide",(r==="master"&&!isMaster())||(r==="admin"&&!isAdmin())||(r==="user"&&profile.role!=="user")||(r==="zone"&&profile.role!=="zoneAdmin"))})}
+const PAGES={dashboard:()=>dashboard(),zones:()=>isMaster()&&zonesPage(),tokens:()=>isAdmin()&&tokensPage(),forms:()=>isAdmin()&&formsPage(),submit:()=>profile.role==="user"&&submitPage(),reports:()=>isAdmin()&&reportsPage(),logs:()=>isAdmin()&&logsPage(),settings:()=>profile.role==="zoneAdmin"&&settingsPage()};
+function render(){
+  if(!profile)return;allowedNav();
+  const h=PAGES[page]?.();if(!h){page="dashboard";return render()}
+  $("pageTitle").textContent=page[0].toUpperCase()+page.slice(1);$("view").innerHTML=h;bindPage();
+}
+function dashboard(){
+  const c=o=>scoped(o).length;
+  return `<h2>Welcome, ${esc(profile.name)}</h2><p class="muted">${isMaster()?"Master Center — global overview":"Zone: "+esc(zoneName(zoneId()))}</p>
+  <div class="grid">${[["Zones",isMaster()?Object.keys(cache.zones).length:1],["Forms",c(cache.forms)],["Tokens",c(cache.tokens)],["Records",c(cache.records)]].map(([k,v])=>`<div class="panel"><div class="muted">${k}</div><div class="stat">${v}</div></div>`).join("")}</div>
+  <div class="panel"><h3>System status</h3><p class="ok">● Firebase connected — live sync</p><p class="muted">Client-side mode: enforce zone isolation with Realtime Database Rules too.</p></div>`;
+}
+function zonesPage(){
+  return `<div class="row"><h2>Zone Management</h2><button class="btn primary" id="addZone">+ Add Zone</button></div>
+  <div class="panel tablewrap"><table><tr><th>Zone</th><th>Fuel rate (L/H)</th><th>Status</th><th>Action</th></tr>
+  ${Object.entries(cache.zones).map(([i,z])=>`<tr><td>${esc(z.name)}</td><td>${z.fuelRate??2}</td><td>${z.active===false?"Disabled":"Active"}</td><td><button class="btn" data-zedit="${i}">Edit</button></td></tr>`).join("")}</table></div>`;
+}
+function tokensPage(){
+  return `<div class="row"><h2>Token Management</h2><button class="btn primary" id="addToken">+ Generate Token</button></div>
+  <div class="panel tablewrap"><table><tr><th>Token</th><th>Name</th><th>Role</th><th>Zone</th><th>Type</th><th>Expiry</th><th>Status</th><th>Action</th></tr>
+  ${scoped(cache.tokens).map(([i,t])=>{const exp=t.expiresAt&&t.expiresAt<Date.now();return `<tr><td><b>${esc(t.token||t.tokenMasked)}</b></td><td>${esc(t.name)}</td><td>${t.role==="zoneAdmin"?"Admin":"User"}</td><td>${esc(zoneName(t.zoneId))}</td><td>${t.expiresAt?"Expiry":"Permanent"}</td><td>${t.expiresAt?new Date(t.expiresAt).toLocaleDateString():"Never"}</td><td>${exp?"Expired":t.active===false?"Revoked":"Active"}</td>
+  <td>${t.token?`<button class="btn" data-copy="${esc(t.token)}">Copy</button> `:""}<button class="btn" data-tog="${i}">${t.active===false?"Enable":"Revoke"}</button> <button class="btn" data-reset="${i}">Reset</button> <button class="btn danger" data-tdel="${i}">Delete</button></td></tr>`}).join("")}</table></div>`;
+}
+function formsPage(){
+  return `<div class="row"><h2>Dynamic Form Builder</h2><button class="btn primary" id="newForm">+ Create Form</button><button class="btn" id="pgTpl">+ PG RUN template</button></div>
+  <div class="panel tablewrap"><table><tr><th>Form</th><th>Zone</th><th>Fields</th><th>Ver.</th><th>Status</th><th>Action</th></tr>
+  ${scoped(cache.forms).map(([i,f])=>{const own=isMaster()||f.zoneId===zoneId();return `<tr><td>${esc(f.icon||"")} ${esc(f.name)}</td><td>${esc(zoneName(f.zoneId))}</td><td>${(f.fields||[]).length}</td><td>${f.version||1}</td><td>${f.active?"Published":"Hidden"}</td>
+  <td>${own?`<button class="btn" data-edit="${i}">Edit</button> <button class="btn" data-hist="${i}">History</button> <button class="btn danger" data-fdel="${i}">Delete</button> `:""}<button class="btn" data-dup="${i}">Duplicate</button></td></tr>`}).join("")}</table></div>`;
+}
+function submitPage(){
+  const forms=Object.entries(cache.forms).filter(([,f])=>f.active&&(f.zoneId==="all"||f.zoneId===zoneId()));
+  return `<h2>My Forms</h2><div class="cols">${forms.map(([i,f])=>`<div class="panel"><h3>${esc(f.icon||"📋")} ${esc(f.name)}</h3><p class="muted">${(f.fields||[]).filter(x=>x.show!==false).length} fields</p><button class="btn primary" data-submit="${i}">Open Form</button></div>`).join("")||'<div class="panel">No forms assigned.</div>'}</div>`;
+}
+function reportsPage(){
+  return `<div class="row"><h2>Reports</h2><button class="btn" id="csv">Export CSV</button></div>
+  <div class="panel tablewrap"><table><tr><th>Date</th><th>Form</th><th>User</th><th>Zone</th><th>Runtime h</th><th>Fuel L</th><th>Rate used</th></tr>
+  ${scoped(cache.records).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0)).map(([,r])=>`<tr><td>${esc(r.date)}</td><td>${esc(r.formName)}</td><td>${esc(r.userName)}</td><td>${esc(zoneName(r.zoneId))}</td><td>${r.runtimeHours||0}</td><td>${r.fuelLiters||0}</td><td>${r.fuelRate||0}</td></tr>`).join("")}</table></div>`;
+}
+function logsPage(){
+  return `<h2>Audit Logs</h2><div class="panel tablewrap"><table><tr><th>Time</th><th>By</th><th>Role</th><th>Zone</th><th>Action</th><th>Detail</th></tr>
+  ${scoped(cache.auditLogs).sort((a,b)=>b[1].at-a[1].at).map(([,l])=>`<tr><td>${new Date(l.at).toLocaleString()}</td><td>${esc(l.by)}</td><td>${esc(l.role)}</td><td>${esc(zoneName(l.zoneId))}</td><td>${esc(l.action)}</td><td>${esc(l.detail)}</td></tr>`).join("")}</table></div>`;
+}
+function settingsPage(){
+  const z=cache.zones[zoneId()]||{};
+  return `<h2>Zone Settings</h2><div class="panel" style="max-width:480px"><div class="field"><label>Zone Name</label><input id="zoneName" value="${esc(z.name||"")}"></div>
+  <div class="field"><label>Fuel Rate (Liter / Hour)</label><input id="fuelRate" type="number" min="0" step=".01" value="${z.fuelRate??2}"></div>
+  <p class="muted">Changing the rate does not alter past reports.</p><button class="btn primary" id="saveZone">Save Settings</button></div>`;
+}
+const on=(id,fn)=>{if($(id))$(id).onclick=fn};
+const all=(sel,fn)=>document.querySelectorAll(sel).forEach(fn);
+function bindPage(){
+  on("addZone",()=>zoneDialog());
+  all("[data-zedit]",b=>b.onclick=()=>zoneDialog(b.dataset.zedit));
+  on("addToken",tokenDialog);
+  all("[data-tog]",b=>b.onclick=async()=>{const t=cache.tokens[b.dataset.tog],on_=t.active===false;await update(ref(db,"tokens/"+b.dataset.tog),{active:on_});await update(ref(db,"tokenIndex/"+t.hash),{active:on_});log(on_?"token enabled":"token revoked",t.name)});
+  all("[data-reset]",b=>b.onclick=async()=>{const id=b.dataset.reset,t=cache.tokens[id];if(!confirm("Reset token for "+t.name+"? The old token stops working."))return;
+    const plain=genToken(),h=await sha(plain);await remove(ref(db,"tokenIndex/"+t.hash));
+    await set(ref(db,"tokenIndex/"+h),{tokenId:id,zoneId:t.zoneId,role:t.role,active:true,expiresAt:t.expiresAt||null});
+    await update(ref(db,"tokens/"+id),{token:plain,hash:h,tokenMasked:plain.slice(0,4)+"••••"+plain.slice(-2),active:true});log("token reset",t.name);copyText(plain);alert("New token created and copied:\n\n"+plain)});
+  all("[data-tdel]",b=>b.onclick=async()=>{const t=cache.tokens[b.dataset.tdel];if(!confirm("Delete token for "+t.name+"?"))return;await remove(ref(db,"tokenIndex/"+t.hash));await remove(ref(db,"tokens/"+b.dataset.tdel));log("token deleted",t.name)});
+  all("[data-copy]",b=>b.onclick=async()=>{await copyText(b.dataset.copy);b.textContent="Copied ✓";setTimeout(()=>b.textContent="Copy",1200)});
+  on("newForm",()=>formEditor());
+  on("pgTpl",()=>saveNewForm(pgTemplate()));
+  all("[data-edit]",b=>b.onclick=()=>formEditor(b.dataset.edit));
+  all("[data-dup]",b=>b.onclick=()=>{const f=JSON.parse(JSON.stringify(cache.forms[b.dataset.dup]));delete f.versions;f.name+=" (Copy)";f.version=1;f.zoneId=isMaster()?f.zoneId:zoneId();saveNewForm(f)});
+  all("[data-fdel]",b=>b.onclick=async()=>{const f=cache.forms[b.dataset.fdel];if(confirm("Delete form '"+f.name+"'? Existing reports are kept.")){await remove(ref(db,"forms/"+b.dataset.fdel));log("form deleted",f.name)}});
+  all("[data-hist]",b=>b.onclick=()=>history(b.dataset.hist));
+  all("[data-submit]",b=>b.onclick=()=>submission(b.dataset.submit));
+  on("saveZone",async()=>{try{await update(ref(db,"zones/"+zoneId()),{name:$("zoneName").value.trim(),fuelRate:Number($("fuelRate").value)});log("zone settings",`rate ${$("fuelRate").value}`);alert("Saved")}catch(e){alert(e.message)}});
+  on("csv",exportCSV);
+}
+function zoneDialog(id){
+  const z=id?cache.zones[id]:{name:"",fuelRate:2,active:true};
+  showDialog(id?"Edit Zone":"Add Zone",`<div class="field"><label>Zone name</label><input id="zN" value="${esc(z.name)}"></div><div class="field"><label>Fuel rate (L/H)</label><input id="zR" type="number" min="0" step=".01" value="${z.fuelRate??2}"></div><label><input id="zA" type="checkbox" ${z.active!==false?"checked":""}> Active</label>
+  <p><button class="btn primary" id="zS">Save</button> ${id?'<button class="btn danger" id="zD">Delete zone</button>':""}</p>`);
+  $("zS").onclick=async()=>{const d={name:$("zN").value.trim(),fuelRate:Number($("zR").value),active:$("zA").checked};if(!d.name)return alert("Zone name required");
+    id?await update(ref(db,"zones/"+id),d):await set(push(ref(db,"zones")),{...d,createdAt:Date.now()});log(id?"zone edited":"zone created",d.name);closeDialog()};
+  if(id)$("zD").onclick=async()=>{if(confirm("Delete zone '"+z.name+"'?")){await remove(ref(db,"zones/"+id));log("zone deleted",z.name);closeDialog()}};
+}
+function tokenDialog(){
+  if(isMaster()&&!Object.keys(cache.zones).length)return alert("Create a zone first");
+  showDialog("Generate Token",`<div class="field"><label>Name</label><input id="tN"></div>
+  <div class="field"><label>Role</label><select id="tR"><option value="user">User</option>${isMaster()?'<option value="zoneAdmin">Zone Admin</option>':""}</select></div>
+  ${isMaster()?`<div class="field"><label>Zone</label><select id="tZ">${zoneOpts("")}</select></div>`:""}
+  <div class="field"><label>Type</label><select id="tT"><option value="p">Permanent</option><option value="e">Expiry</option></select></div>
+  <div class="field hidden" id="tEB"><label>Expiry date</label><input id="tE" type="date"></div><button class="btn primary" id="tS">Generate</button>`);
+  $("tT").onchange=()=>$("tEB").classList.toggle("hidden",$("tT").value!=="e");
+  $("tS").onclick=async()=>{
+    const name=$("tN").value.trim();if(!name)return alert("Name required");
+    const exp=$("tT").value==="e"?(($("tE").value&&new Date($("tE").value+"T23:59:59").getTime())||0):null;
+    if(exp===0)return alert("Pick an expiry date");
+    try{const plain=genToken(),hash=await sha(plain),id=push(ref(db,"tokens")).key,zid=isMaster()?$("tZ").value:zoneId(),role=isMaster()?$("tR").value:"user";
+      await set(ref(db,"tokens/"+id),{token:plain,hash,tokenMasked:plain.slice(0,4)+"••••"+plain.slice(-2),name,zoneId:zid,role,active:true,createdAt:Date.now(),createdBy:user.uid,expiresAt:exp});
+      await set(ref(db,"tokenIndex/"+hash),{tokenId:id,zoneId:zid,role,active:true,expiresAt:exp});
+      log("token created",name);closeDialog();copyText(plain);alert("Token created and copied:\n\n"+plain+"\n\nYou can copy it again anytime from the Tokens list.")}catch(e){alert(e.message)}
+  };
+}
+/* ===== Form builder ===== */
+const TYPES=["text","number","date","time","dropdown","multiselect","checkbox","textarea","calculation"],RESERVED=["hours","round","min","max"];
+const slug=(l,used)=>{let k=String(l).toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"")||"f";if(/^\d/.test(k)||RESERVED.includes(k))k="f_"+k;let n=k,i=2;while(used.includes(n))n=k+"_"+i++;return n};
+const pgTemplate=()=>({name:"PG RUN",icon:"⚡",active:true,version:1,zoneId:isMaster()?"all":zoneId(),fields:[
+ {label:"Site ID",key:"site_id",type:"text",show:true,required:true},{label:"Operator Name",key:"operator_name",type:"text",show:true,required:true},
+ {label:"Date",key:"date",type:"date",show:true,required:true},{label:"PG Start",key:"pg_start",type:"time",show:true,required:true},{label:"PG Stop",key:"pg_stop",type:"time",show:true,required:true},
+ {label:"Zone Fuel Rate (L/Hour)",key:"rate",type:"number",show:true,readonly:true,default:"@rate"},{label:"Remarks (Optional)",key:"remarks",type:"textarea",show:true},
+ {label:"Runtime (hours)",key:"runtime",type:"calculation",show:true,formula:"round(hours(pg_start,pg_stop),2)"},{label:"Fuel Consumption (L)",key:"fuel",type:"calculation",show:true,formula:"round(hours(pg_start,pg_stop)*rate,2)"}]});
+async function saveNewForm(f){f.createdAt=Date.now();f.updatedAt=Date.now();await set(push(ref(db,"forms")),f);log("form created",f.name)}
+const fieldCard=(f,i)=>{const a=`data-i="${i}"`,inp=(k,ph,t="text")=>`<input ${a} data-k="${k}" type="${t}" placeholder="${ph}" value="${esc(f[k]??"")}">`;
+  return `<div class="fcard"><div class="fieldrow"><input ${a} data-k="label" placeholder="Label" value="${esc(f.label)}"><select ${a} data-k="type">${TYPES.map(t=>`<option ${f.type===t?"selected":""}>${t}</option>`).join("")}</select>
+  <label><input type="checkbox" ${a} data-k="show" ${f.show!==false?"checked":""}> Show</label><label><input type="checkbox" ${a} data-k="required" ${f.required?"checked":""}> Required</label><label><input type="checkbox" ${a} data-k="readonly" ${f.readonly?"checked":""}> Read-only</label></div>
+  <div class="fr2">${inp("default","Default (@rate = zone rate)")}${inp("placeholder","Placeholder")}${inp("min","Min","number")}${inp("max","Max","number")}${inp("options","Options: a,b,c")}${inp("formula","Formula e.g. hours(a,b)*rate")}</div>
+  <div class="row"><button class="btn" data-mv="${i}:-1">↑</button><button class="btn" data-mv="${i}:1">↓</button><button class="btn danger" data-del="${i}">Delete</button><span class="muted">key: ${esc(f.key)}</span></div></div>`};
+function paintFields(){$("fieldList").innerHTML=draft.fields.map(fieldCard).join("");bindFieldRows()}
+function bindFieldRows(){
+  all("#dialog [data-i]",el=>el.onchange=()=>{const f=draft.fields[+el.dataset.i],k=el.dataset.k;f[k]=el.type==="checkbox"?el.checked:el.value});
+  all("#dialog [data-del]",el=>el.onclick=()=>{draft.fields.splice(+el.dataset.del,1);paintFields()});
+  all("#dialog [data-mv]",el=>el.onclick=()=>{const[i,d]=el.dataset.mv.split(":").map(Number),j=i+d;if(j<0||j>=draft.fields.length)return;[draft.fields[i],draft.fields[j]]=[draft.fields[j],draft.fields[i]];paintFields()});
+}
+function formEditor(id){
+  const old=id?cache.forms[id]:null;
+  draft=old?JSON.parse(JSON.stringify(old)):{name:"",icon:"📋",zoneId:isMaster()?"all":zoneId(),active:true,version:1,fields:[{label:"Date",key:"date",type:"date",show:true,required:true}]};
+  delete draft.versions;
+  showDialog(id?"Edit Form":"Create Form",`<div class="field"><label>Form Name</label><input id="dName" value="${esc(draft.name)}"></div><div class="field"><label>Icon</label><input id="dIcon" value="${esc(draft.icon)}"></div>
+  ${isMaster()?`<div class="field"><label>Zone</label><select id="dZone">${zoneOpts(draft.zoneId,true)}</select></div>`:""}
+  <label><input id="dActive" type="checkbox" ${draft.active?"checked":""}> Published</label><h3>Fields</h3><div id="fieldList"></div>
+  <button class="btn" id="addField">+ Add Field</button><p><button class="btn primary" id="saveForm">Save Form</button></p>`);
+  paintFields();
+  $("addField").onclick=()=>{const n="New Field";draft.fields.push({label:n,key:slug(n,draft.fields.map(f=>f.key)),type:"text",show:true});paintFields()};
+  $("saveForm").onclick=async()=>{
+    draft.name=$("dName").value.trim();draft.icon=$("dIcon").value||"📋";draft.active=$("dActive").checked;draft.zoneId=isMaster()?$("dZone").value:zoneId();
+    if(!draft.name||!draft.fields.length)return alert("Form name and at least one field required");
+    const used=[];draft.fields.forEach(f=>{if(!f.key||used.includes(f.key))f.key=slug(f.label,used);used.push(f.key)});
+    try{draft.updatedAt=Date.now();
+      if(id){await set(ref(db,`forms/${id}/versions/${Date.now()}`),{name:old.name,fields:old.fields,version:old.version||1,savedAt:Date.now()});draft.version=(old.version||1)+1;await update(ref(db,"forms/"+id),draft);log("form edited",`${draft.name} v${draft.version}`)}
+      else await saveNewForm(draft);
+      closeDialog()}catch(e){alert(e.message)}
+  };
+}
+function history(id){
+  const f=cache.forms[id],v=Object.entries(f.versions||{}).sort((a,b)=>b[0]-a[0]);
+  showDialog("Version history — "+f.name,`<p class="muted">Current: v${f.version||1}</p>${v.map(([k,x])=>`<div class="row" style="justify-content:space-between"><span>v${x.version} • ${new Date(x.savedAt).toLocaleString()} • ${(x.fields||[]).length} fields</span><button class="btn" data-rest="${k}">Restore</button></div>`).join("")||"No older versions."}`);
+  all("#dialog [data-rest]",b=>b.onclick=async()=>{const x=f.versions[b.dataset.rest];if(!confirm("Restore v"+x.version+"?"))return;
+    await set(ref(db,`forms/${id}/versions/${Date.now()}`),{name:f.name,fields:f.fields,version:f.version||1,savedAt:Date.now()});
+    await update(ref(db,"forms/"+id),{fields:x.fields,version:(f.version||1)+1,updatedAt:Date.now()});log("form restored",`${f.name} from v${x.version}`);closeDialog()});
+}
+/* ===== Calculation engine ===== */
+const mins=t=>{const[h,m]=String(t||"").split(":").map(Number);return isNaN(h)||isNaN(m)?NaN:h*60+m};
+const hours=(a,b)=>{const x=mins(a);let y=mins(b);if(isNaN(x)||isNaN(y))return 0;if(y<x)y+=1440;return (y-x)/60};
+function calc(f,vals,rate){
+  const fx=f.formula||"",names=Object.keys(vals).filter(k=>k!=="rate"&&!RESERVED.includes(k)&&/^[A-Za-z_]\w*$/.test(k)),allowed=new Set([...names,"rate",...RESERVED]);
+  if(!fx||!/^[\w\s+\-*/%(),<>=!&|?:.]*$/.test(fx)||/\.[A-Za-z_]/.test(fx)||!(fx.match(/[A-Za-z_]\w*/g)||[]).every(n=>allowed.has(n)))return "";
+  try{return new Function(...names,"rate","hours","round","min","max","return ("+fx+")")(...names.map(n=>vals[n]),rate,hours,(n,d=2)=>+(+n).toFixed(d),Math.min,Math.max)}catch(e){return ""}
+}
+function compute(f,data){
+  const zr=Number(cache.zones[zoneId()]?.fuelRate??2),typ={},out={};(f.fields||[]).forEach(x=>typ[x.key]=x.type);
+  Object.entries(data).forEach(([k,v])=>out[k]=typ[k]==="number"?(v===""?0:Number(v)):v);
+  const rate=out.rate!==undefined&&out.rate!==""?Number(out.rate):zr;
+  (f.fields||[]).forEach(x=>{if(x.type==="calculation")out[x.key]=calc(x,out,rate)});
+  return {out,rate};
+}
+function submission(id){
+  const f=cache.forms[id],zr=Number(cache.zones[zoneId()]?.fuelRate??2),fs=(f.fields||[]).filter(x=>x.show!==false);
+  const html=fs.map(x=>{const k=esc(x.key),d=x.default==="@rate"?zr:(x.default??""),ro=x.readonly?"readonly":"",rq=x.required?"required":"",opts=String(x.options||"Yes,No,Other").split(",").map(s=>s.trim()).filter(Boolean);
+    const c=x.type==="calculation"?`<div class="calc" data-calc="${k}">—</div>`
+    :x.type==="textarea"?`<textarea data-key="${k}" placeholder="${esc(x.placeholder||"")}" ${ro} ${rq}>${esc(d)}</textarea>`
+    :x.type==="dropdown"||x.type==="multiselect"?`<select data-key="${k}" ${x.type==="multiselect"?"multiple":""} ${x.readonly?"disabled":""} ${rq}>${x.type==="dropdown"?'<option value="">Select</option>':""}${opts.map(o=>`<option ${o===d?"selected":""}>${esc(o)}</option>`).join("")}</select>`
+    :x.type==="checkbox"?`<input type="checkbox" data-key="${k}" ${d===true||d==="true"?"checked":""} ${x.readonly?"disabled":""}>`
+    :`<input data-key="${k}" type="${["number","date","time"].includes(x.type)?x.type:"text"}" placeholder="${esc(x.placeholder||"")}" value="${esc(d)}" ${x.min!==undefined&&x.min!==""?`min="${esc(x.min)}"`:""} ${x.max!==undefined&&x.max!==""?`max="${esc(x.max)}"`:""} ${x.type==="number"?'step="any"':""} ${ro} ${rq}>`;
+    return `<div class="field"><label>${esc(x.label)} ${x.required?"*":""}</label>${c}</div>`}).join("");
+  showDialog(f.name,`<form id="submitForm">${html}<button class="btn primary">Submit Record</button></form>`);
+  const collect=()=>{const d={};all("#submitForm [data-key]",el=>d[el.dataset.key]=el.type==="checkbox"?el.checked:el.multiple?[...el.selectedOptions].map(o=>o.value).join(", "):el.value);return d};
+  const refresh=()=>{const{out}=compute(f,collect());all("#submitForm [data-calc]",el=>{let v=out[el.dataset.calc];if(v===""||v===undefined||v!==v)return el.textContent="—";if(el.dataset.calc==="runtime"){const m=Math.round(v*60);v=`${v} h (${Math.floor(m/60)}h ${m%60}m)`}el.textContent=v})};
+  $("submitForm").oninput=refresh;$("submitForm").onchange=refresh;refresh();
+  $("submitForm").onsubmit=async e=>{e.preventDefault();
+    const{out,rate}=compute(f,collect()),labels={};(f.fields||[]).forEach(x=>labels[x.key]=x.label);
+    try{await set(push(ref(db,"records")),{formId:id,formName:f.name,formVersion:f.version||1,userName:profile.name,userId:user.uid,zoneId:zoneId(),data:out,labels,date:out.date||new Date().toISOString().slice(0,10),runtimeHours:Number(out.runtime)||0,fuelLiters:Number(out.fuel)||0,fuelRate:rate,createdAt:Date.now()});
+      log("record submitted",f.name);closeDialog();alert("Record submitted successfully")}catch(err){alert(err.message)}};
+}
+function showDialog(title,body){
+  closeDialog();const d=document.createElement("div");d.id="dialog";d.style="position:fixed;inset:0;background:#07132699;display:grid;place-items:center;padding:15px;z-index:20";
+  d.innerHTML=`<div class="panel" style="width:min(720px,100%);max-height:90vh;overflow:auto"><div class="row" style="justify-content:space-between"><h2>${esc(title)}</h2><button class="btn" id="closeDlg">Close</button></div>${body}</div>`;
+  document.body.append(d);$("closeDlg").onclick=closeDialog;
+}
+function closeDialog(){$("dialog")?.remove();if(profile)render()}
+function exportCSV(){
+  const rows=scoped(cache.records).map(([,r])=>r),keys=[],lab={};
+  rows.forEach(r=>Object.keys(r.data||{}).forEach(k=>{if(!keys.includes(k))keys.push(k);lab[k]=lab[k]||r.labels?.[k]||k}));
+  const data=[["Date","Form","Version","User","Zone","Runtime Hours","Fuel Liters","Fuel Rate",...keys.map(k=>lab[k])],...rows.map(r=>[r.date,r.formName,r.formVersion||1,r.userName,zoneName(r.zoneId),r.runtimeHours,r.fuelLiters,r.fuelRate,...keys.map(k=>r.data?.[k])])];
+  const csv=data.map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\n"),a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}));a.download="RAFINOOR-Reports.csv";a.click();URL.revokeObjectURL(a.href);log("csv export");
+}
+</script>
+</body>
+</html>
