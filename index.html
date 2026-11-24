@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101b33">
+<title>RAFINOOR | Multi-Zone Management</title>
+<style>
+:root{--nav:#101b33;--blue:#2864dc;--bg:#f3f6fb;--ink:#18243a;--muted:#718096;--line:#e4eaf2}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px system-ui,sans-serif}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+.login{min-height:100vh;display:grid;place-items:center;background:linear-gradient(135deg,#101b33,#254a7c);padding:18px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:15px}
+.login .panel{width:min(440px,100%);padding:28px}
+.brand{font-weight:900;font-size:23px;color:#17345f}
+.sub,.muted{color:var(--muted);font-size:12px}
+.field{display:grid;gap:6px;margin:12px 0}
+.field label{font-weight:650;font-size:12px}
+.field input,.field select,.field textarea{width:100%;padding:10px;border:1px solid #dce4ef;border-radius:8px;background:white}
+.btn{border:1px solid var(--line);background:white;padding:9px 13px;border-radius:8px;font-weight:650;font-size:12px}
+.primary{background:var(--blue);border-color:var(--blue);color:white}
+.danger{color:#c33}
+.layout{display:flex;min-height:100vh}
+.side{width:230px;background:var(--nav);color:white;padding:18px;flex-shrink:0}
+.side .brand{color:white;margin-bottom:22px}
+.nav{display:block;width:100%;text-align:left;border:0;background:none;color:#d1d9e8;padding:11px;border-radius:8px;margin:3px 0}
+.nav:hover,.nav.active{background:#263b5d}
+.main{flex:1;min-width:0}
+.top{height:62px;background:white;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:sticky;top:0;z-index:5}
+.content{padding:22px;max-width:1400px;margin:auto}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.stat{font-size:26px;font-weight:800}
+.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.tablewrap{overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+td,th{text-align:left;padding:10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--muted);background:#fafbfd}
+.notice{background:#fff4df;padding:12px;border-radius:8px;color:#80560c;font-size:12px;line-height:1.6}
+.ok{color:#16734e}
+.error{color:#c33}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fieldrow{display:grid;grid-template-columns:1.2fr 1fr .7fr .7fr auto;gap:7px;align-items:end;border:1px solid var(--line);padding:9px;border-radius:8px;margin:8px 0}
+.fieldrow input,.fieldrow select{min-width:0;width:100%;padding:8px;border:1px solid var(--line);border-radius:7px}
+.pill{padding:4px 8px;background:#eaf1ff;border-radius:20px;font-size:11px}
+.hide{display:none}.fcard{border:1px solid var(--line);border-radius:10px;padding:8px;margin:8px 0}.fr2{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin:6px 0}.fr2 input{padding:7px;border:1px solid var(--line);border-radius:7px;min-width:0}.calc{padding:10px;background:#eaf1ff;border-radius:8px;font-weight:700}.fieldrow{grid-template-columns:1.2fr 1fr auto auto auto}
+@media(max-width:850px){
+  .layout{display:block}
+  .side{width:auto;display:flex;overflow:auto;gap:5px;padding:8px}
+  .side .brand{display:none}
+  .nav{white-space:nowrap;width:auto}
+  .grid{grid-template-columns:repeat(2,1fr)}
+  .content{padding:13px}
+  .top{padding:0 12px}
+  .cols{grid-template-columns:1fr}
+  .fieldrow{grid-template-columns:1fr 1fr}
+  .fieldrow>*:first-child{grid-column:1/-1}
+}
+
+/* ===== Animations ===== */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes fadeOut{to{opacity:0}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.92) translateY(8px)}to{opacity:1;transform:none}}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes bg{0%{background-position:0 50%}50%{background-position:100% 50%}100%{background-position:0 50%}}
+@keyframes toastIn{from{opacity:0;transform:translateY(16px) scale(.95)}to{opacity:1;transform:none}}
+@keyframes leave{to{opacity:0;transform:translateX(40px) scale(.96)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.login{background:linear-gradient(135deg,#101b33,#254a7c,#1b5fa8,#101b33);background-size:300% 300%;animation:bg 14s ease infinite}
+.login .panel{animation:pop .5s cubic-bezier(.2,.9,.3,1.2)}
+#view.pg>*{animation:fadeUp .42s cubic-bezier(.2,.8,.3,1) both}
+#view.pg>*:nth-child(2){animation-delay:.05s}#view.pg>*:nth-child(3){animation-delay:.1s}#view.pg>*:nth-child(4){animation-delay:.15s}#view.pg>*:nth-child(5){animation-delay:.2s}#view.pg>*:nth-child(n+6){animation-delay:.25s}
+.panel{transition:transform .2s,box-shadow .2s}
+body.desktop .grid .panel:hover{transform:translateY(-3px);box-shadow:0 10px 26px #1b2a4a1f}
+.btn{transition:transform .12s,box-shadow .2s,background .2s,opacity .2s}
+.btn:hover{box-shadow:0 4px 12px #1b2a4a1f}
+.btn:active{transform:scale(.95)}
+.primary:hover{background:#1f54c0}
+.btn:disabled{opacity:.4;pointer-events:none}
+.nav{transition:background .2s,transform .2s}
+.nav i{font-style:normal;display:inline-block;width:20px;text-align:center;margin-right:8px}
+body.desktop .nav:hover{transform:translateX(3px)}
+body.desktop .nav.active{box-shadow:inset 3px 0 0 #5b8cff}
+.field input:focus,.field select:focus,.field textarea:focus,.fr2 input:focus{outline:2px solid #2864dc55;border-color:var(--blue)}
+.dlg{animation:fadeIn .18s}
+.dlg>.panel{animation:pop .24s cubic-bezier(.2,.9,.3,1.1)}
+.dlg.out{animation:fadeOut .2s forwards}
+.leaving{animation:leave .3s ease forwards;pointer-events:none}
+.fx{position:fixed;inset:0;background:#07132668;backdrop-filter:blur(3px);display:grid;place-items:center;z-index:60;animation:fadeIn .15s}
+.fx.out{animation:fadeOut .22s forwards}
+.fxbox{background:#fff;border-radius:20px;padding:26px 36px;display:grid;justify-items:center;gap:12px;min-width:200px;animation:pop .26s cubic-bezier(.2,.9,.3,1.2);box-shadow:0 24px 60px #0005;text-align:center}
+.fxt{font-weight:700;color:#17345f}
+.spin{width:46px;height:46px;border-radius:50%;border:4px solid #dbe6fb;border-top-color:var(--blue);animation:spin .75s linear infinite}
+.tick{width:62px;height:62px}
+.tc{fill:none;stroke:#16a36a;stroke-width:3;stroke-dasharray:146;stroke-dashoffset:146;animation:draw .5s ease forwards}
+.tp{fill:none;stroke:#16a36a;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:42;stroke-dashoffset:42;animation:draw .35s .35s ease forwards}
+.warnic{width:46px;height:46px;border-radius:50%;background:#fff4df;color:#c77d00;display:grid;place-items:center;font-weight:900;font-size:24px;animation:pulse 1s infinite}
+#toasts{position:fixed;right:18px;bottom:18px;display:grid;gap:8px;z-index:70;pointer-events:none}
+.toast{display:flex;gap:10px;align-items:center;background:#101b33;color:#fff;padding:12px 16px;border-radius:12px;box-shadow:0 10px 30px #0004;font-weight:600;animation:toastIn .3s;max-width:340px}
+.toast.out{opacity:0;transform:translateY(10px);transition:.3s}
+.toast .ti{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;background:#16a36a;flex-shrink:0}
+.toast.err .ti{background:#d94141}.toast.info .ti{background:#2864dc}
+/* ===== Report tabs / lists ===== */
+.tabs{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 12px;scrollbar-width:thin}
+.tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 15px;font-weight:700;white-space:nowrap;display:flex;gap:7px;align-items:center;transition:.2s}
+.tab:hover{border-color:var(--blue)}
+.tab.on{background:var(--blue);color:#fff;border-color:var(--blue);box-shadow:0 6px 16px #2864dc44}
+.cnt{background:#0000000f;border-radius:99px;padding:1px 8px;font-size:11px}.tab.on .cnt{background:#ffffff33}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0}
+.filters input{padding:9px 11px;border:1px solid #dce4ef;border-radius:8px;background:#fff}
+.filters .search{flex:1;min-width:160px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}.bar .sp{flex:1}
+.rt th{position:sticky;top:0;z-index:1}
+.rt.panel,.tablewrap:has(.rt){max-height:68vh}
+.empty{text-align:center;color:var(--muted);padding:30px}
+.mcards{display:grid;gap:10px}
+.rcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px}
+.rtop{display:flex;align-items:center;gap:8px;margin-bottom:8px}.rtop b{flex:1}
+.rkv{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:12px;margin-bottom:10px}.rkv span{color:var(--muted)}.rkv b{text-align:right;word-break:break-word}
+/* ===== Phone UI ===== */
+body.mobile{background:#eef2f9;-webkit-tap-highlight-color:transparent}
+body.mobile .layout{display:block;padding-bottom:84px}
+body.mobile .side{position:fixed;left:0;right:0;bottom:0;top:auto;width:auto;z-index:15;display:flex;overflow-x:auto;gap:2px;padding:7px 6px calc(7px + env(safe-area-inset-bottom));border-radius:20px 20px 0 0;box-shadow:0 -8px 28px #0005;scrollbar-width:none}
+body.mobile .side .brand{display:none}
+body.mobile .nav{flex:0 0 auto;min-width:66px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;padding:8px 8px;text-align:center;border-radius:14px}
+body.mobile .nav.hide{display:none}
+body.mobile .nav i{font-size:19px;margin:0;width:auto}
+body.mobile .nav.active{background:var(--blue);transform:translateY(-3px);box-shadow:0 6px 14px #2864dc66}
+body.mobile .top{height:54px;padding:0 14px;background:var(--nav);color:#fff;border:0}
+body.mobile .top .pill{background:#ffffff22;color:#fff;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.mobile .top .btn{padding:7px 10px}
+body.mobile .content{padding:12px}
+body.mobile h2{font-size:18px;margin:6px 0}
+body.mobile .grid{grid-template-columns:1fr 1fr;gap:10px}
+body.mobile .stat{font-size:22px}
+body.mobile .btn{padding:11px 14px;min-height:42px}
+body.mobile .field input,body.mobile .field select,body.mobile .field textarea,body.mobile .filters input,body.mobile .fr2 input,body.mobile .fieldrow input,body.mobile .fieldrow select{font-size:16px}
+body.mobile .cols{grid-template-columns:1fr}
+body.mobile .dlg{place-items:end center!important;padding:0!important}
+body.mobile .dlg>.panel{width:100%!important;max-height:92vh;border-radius:22px 22px 0 0;margin:0;animation:sheetUp .3s cubic-bezier(.2,.8,.3,1)}
+body.mobile #toasts{left:12px;right:12px;bottom:92px}
+body.mobile .toast{max-width:none}
+body.mobile .cardt,body.mobile .cardt tbody{display:block;width:100%}
+body.mobile .cardt tr{display:block;background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px 12px;margin:0 0 10px}
+body.mobile .cardt tr:first-child{display:none}
+body.mobile .cardt td{display:flex;justify-content:space-between;align-items:center;gap:12px;border:0;padding:7px 0;white-space:normal;text-align:right;flex-wrap:wrap}
+body.mobile .cardt td::before{content:attr(data-label);color:var(--muted);font-weight:650;text-align:left}
+body.mobile .panel:has(>.cardt){background:none;border:0;padding:0}
+body.mobile .tablewrap:has(.cardt){overflow:visible}
+body.mobile .bar .sp{display:none}
+body.mobile .bar .btn{flex:1}
+body.mobile .login .panel{padding:22px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login" class="login">
+  <div class="panel">
+    <div class="brand">RAFINOOR</div>
+    <div class="sub">DYNAMIC MULTI-ZONE MANAGEMENT SYSTEM</div>
+    <h2>Sign in</h2>
+
+    <div class="field">
+      <label>Login Type</label>
+      <select id="loginType">
+        <option value="master">Master Admin Login</option>
+        <option value="admin">Admin Login</option>
+        <option value="user">User Login</option>
+      </select>
+    </div>
+
+    <div id="masterBox" class="field">
+      <label>Master Cloud Password</label>
+      <input id="masterPass" type="password" placeholder="Master password">
+    </div>
+
+    <div id="tokenBox" class="field hidden">
+      <label id="tokenLabel">Access Token</label>
+      <input id="tokenInput" placeholder="Your access token">
+    </div>
+
+    <button class="btn primary" style="width:100%" id="loginBtn">Login</button>
+    <p id="loginMsg" class="muted"></p>
+
+    <div class="notice">Master: cloud password. Admin / User: access token.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="layout hidden">
+  <aside class="side">
+    <div class="brand">RAFINOOR</div>
+    <button class="nav active" data-page="dashboard">▦ Dashboard</button>
+    <button class="nav" data-page="zones" data-role="master">◎ Zones</button>
+    <button class="nav" data-page="tokens" data-role="admin">⌘ Tokens</button>
+    <button class="nav" data-page="forms" data-role="admin">▤ Form Builder</button>
+    <button class="nav" data-page="submit" data-role="user">✎ My Forms</button>
+    <button class="nav" data-page="mine" data-role="user">▤ My Records</button>
+    <button class="nav" data-page="fuel">⛽ Fuel Sheet</button>
+    <button class="nav" data-page="reports" data-role="admin">▥ Reports</button>
+    <button class="nav" data-page="logs" data-role="admin">☰ Audit Logs</button>
+    <button class="nav" data-page="settings" data-role="zone">⚙ Zone Settings</button>
+  </aside>
+  <main class="main">
+    <header class="top">
+      <b id="pageTitle">Dashboard</b>
+      <div class="row">
+        <span id="identity" class="pill"></span>
+        <button class="btn" id="logoutBtn">Logout</button>
+      </div>
+    </header>
+    <div class="content" id="view"></div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getDatabase, ref, get, set, push, update, remove, onValue, query, limitToLast, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+const firebaseConfig={apiKey:"AIzaSyCUWbTvmbHfQpVe7B6-JKFHa-yuLQFJGbI",authDomain:"ft-server-b928d.firebaseapp.com",databaseURL:"https://ft-server-b928d-default-rtdb.firebaseio.com",projectId:"ft-server-b928d",storageBucket:"ft-server-b928d.firebasestorage.app",messagingSenderId:"123067166931",appId:"1:123067166931:web:73e4066f126e744daf6426",measurementId:"G-09SGQ45QYL"};
+const auth=getAuth(initializeApp(firebaseConfig)), db=getDatabase();
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let user=null,profile=null,page="dashboard",draft=null;
+const cache={zones:{},tokens:{},forms:{},records:{},auditLogs:{}},unsubs={};
+const zoneId=()=>profile?.zoneId||"", isMaster=()=>profile?.role==="master", isAdmin=()=>["master","zoneAdmin"].includes(profile?.role);
+const scoped=o=>Object.entries(o||{}).filter(([,v])=>isMaster()||v.zoneId===zoneId()||v.zoneId==="all");
+const zoneName=id=>id==="all"?"All Zones":(cache.zones[id]?.name||id||"—");
+const zoneOpts=(sel,all)=>(all?`<option value="all">All Zones</option>`:"")+Object.entries(cache.zones).map(([i,z])=>`<option value="${i}" ${sel===i?"selected":""}>${esc(z.name)}</option>`).join("");
+const msg=(s,e)=>{$("loginMsg").textContent=s;$("loginMsg").className=e?"error":"ok"};
+const sha=async t=>[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t)))].map(b=>b.toString(16).padStart(2,"0")).join("");
+const genToken=(n=12)=>{const c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",a=crypto.getRandomValues(new Uint32Array(n));return [...a].map(x=>c[x%c.length]).join("")};
+const log=(action,detail="")=>push(ref(db,"auditLogs"),{at:Date.now(),by:profile?.name||"",role:profile?.role||"",zoneId:zoneId(),action,detail}).catch(()=>{});
+const copyText=async t=>{try{await navigator.clipboard.writeText(t)}catch(e){const a=document.createElement("textarea");a.value=t;document.body.append(a);a.select();document.execCommand("copy");a.remove()}};
+const LOCAL_MASTER_PASSWORD="rafinoor2024";
+/* ===== UI helpers: device mode, toast, saving animation ===== */
+let lastPage="",pgT=0;
+const mq=matchMedia("(max-width:850px), (pointer:coarse) and (max-width:1100px)"),isMob=()=>mq.matches;
+const applyMode=()=>{document.body.classList.toggle("mobile",isMob());document.body.classList.toggle("desktop",!isMob())};
+applyMode();mq.addEventListener("change",()=>{applyMode();if(profile&&!$("dialog"))render()});
+document.querySelectorAll(".nav").forEach(b=>{const m=b.textContent.trim().match(/^(\S+)\s+(.*)$/);if(m)b.innerHTML=`<i>${m[1]}</i><span>${m[2]}</span>`});
+function toast(m,t="ok"){let c=$("toasts");if(!c){c=document.createElement("div");c.id="toasts";document.body.append(c)}
+  const e=document.createElement("div");e.className="toast "+t;e.innerHTML=`<span class="ti">${t==="err"?"✕":t==="info"?"i":"✓"}</span><span>${esc(m)}</span>`;c.append(e);
+  setTimeout(()=>{e.classList.add("out");setTimeout(()=>e.remove(),320)},2800)}
+window.alert=m=>{m=String(m??"");document.querySelectorAll(".fx").forEach(x=>x.remove());
+  if(m.includes("\n")){showDialog("Done",`<p style="white-space:pre-wrap;font-weight:650;font-size:15px;word-break:break-all">${esc(m)}</p>`);return}
+  toast(m,/required|wrong|invalid|denied|permission|fail|could not|not found|first|pick|enter|no records|nothing|disabled|expired|revoked|not an|use admin|load/i.test(m)?"err":"ok")};
+window.addEventListener("unhandledrejection",e=>alert(e.reason?.message||"Something went wrong"));
+function fx(label){
+  const o=document.createElement("div");o.className="fx";o.innerHTML=`<div class="fxbox"><div class="spin"></div><div class="fxt">${esc(label)}</div></div>`;document.body.append(o);
+  const t0=Date.now(),box=()=>o.querySelector(".fxbox");let done=false;
+  const end=ms=>new Promise(r=>setTimeout(()=>{o.classList.add("out");setTimeout(()=>{o.remove();r()},230)},ms));
+  const to=setTimeout(()=>{if(done)return;done=true;box().innerHTML='<div class="warnic">!</div><div class="fxt">Slow connection — will sync automatically</div>';end(2400)},12000);
+  return {async ok(m="Saved"){if(done)return;done=true;clearTimeout(to);const w=450-(Date.now()-t0);if(w>0)await new Promise(r=>setTimeout(r,w));
+    box().innerHTML=`<svg class="tick" viewBox="0 0 52 52"><circle class="tc" cx="26" cy="26" r="23"/><path class="tp" d="M14 27l8 8 16-17"/></svg><div class="fxt">${esc(m)}</div>`;await end(800)}}
+}
+const prevStat={};
+function countUp(root){root.querySelectorAll(".stat[data-count]").forEach(el=>{
+  const to=Number(el.dataset.count)||0,k=el.dataset.k,from=prevStat[k]??0;prevStat[k]=to;
+  const dec=String(to).includes(".")?String(to).split(".")[1].length:0;
+  if(from===to){el.textContent=to;return}
+  el.textContent=from.toFixed(dec);const t0=performance.now();
+  const step=t=>{const p=Math.min(1,(t-t0)/700),e=1-Math.pow(1-p,3);el.textContent=(from+(to-from)*e).toFixed(dec);if(p<1&&el.isConnected)requestAnimationFrame(step)};requestAnimationFrame(step)})}
+function cardify(root){if(!isMob())return;root.querySelectorAll("table:not(.keep)").forEach(t=>{
+  const h=t.rows[0];if(!h||![...h.cells].every(c=>c.tagName==="TH"))return;const hs=[...h.cells].map(c=>c.textContent.trim());
+  t.classList.add("cardt");[...t.rows].slice(1).forEach(r=>[...r.cells].forEach((c,i)=>c.dataset.label=hs[i]||""))})}
+const fuelCards=d=>`<div class="mcards" style="margin-bottom:12px">${d.rows.map(r=>`<div class="rcard"><div class="rtop"><b>${esc(r.name)}</b><span class="pill">CPH ${r.cph??"—"}</span></div><div class="rkv"><span>Opening</span><b>${r.open??"—"}</b><span>Received</span><b>${r.recv}</b><span>PG Run (H)</span><b>${r.pg}</b><span>In hand</span><b>${r.hand??"—"}</b></div></div>`).join("")}</div>`;
+
+
+function updateLoginFields(){const t=$("loginType").value;$("masterBox").classList.toggle("hidden",t!=="master");$("tokenBox").classList.toggle("hidden",t==="master");$("tokenLabel").textContent=t==="admin"?"Admin Access Token":"User Access Token"}
+$("loginType").onchange=updateLoginFields;updateLoginFields();
+
+async function checkMaster(p){
+  if(p===LOCAL_MASTER_PASSWORD)return true;
+  const c=new AbortController(),t=setTimeout(()=>c.abort(),8000);
+  try{const r=await fetch("https://script.google.com/macros/s/AKfycbwulHNmaFIIKkJlyVri6Hf2UUJnyqJi0sXFklQGtyC-6s_5kVYrqDbwodK_4qF_RTpM/exec",{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"login",password:p}),signal:c.signal});
+    return JSON.parse(await r.text()).status==="success"}catch(e){return false}finally{clearTimeout(t)}
+}
+function watchToken(id){
+  if(unsubs.tok)unsubs.tok();
+  unsubs.tok=onValue(ref(db,"tokens/"+id),async s=>{const t=s.val();
+    if(!t||t.active===false||(t.expiresAt&&t.expiresAt<Date.now())){alert("Your access was revoked or expired.");signOut(auth);return}
+    if(profile&&(t.role!==profile.role||t.zoneId!==profile.zoneId||t.name!==profile.name)){
+      const p={role:t.role,zoneId:t.zoneId,name:t.name,tokenId:id,createdAt:Date.now()};
+      try{await set(ref(db,"userProfiles/"+profile.uid),p);profile={uid:profile.uid,...p};page="dashboard";showApp()}catch(e){console.error(e)}}});
+}
+$("loginBtn").onclick=async()=>{
+  let step="sign-in";
+  try{
+    msg("Connecting…");const type=$("loginType").value;
+    const uid=(await signInAnonymously(auth)).user.uid;user=auth.currentUser;
+    if(type==="master"){
+      const pw=$("masterPass").value.trim();if(!pw)throw Error("Enter master password");
+      if(!await checkMaster(pw))throw Error("Wrong master password");
+      const p={role:"master",name:"Master Admin",createdAt:Date.now()};
+      step="write userProfiles";await set(ref(db,"userProfiles/"+uid),p);profile={uid,...p};
+    }else{
+      const token=$("tokenInput").value.trim().toUpperCase();if(!token)throw Error("Enter token");
+      step="read tokenIndex";const idx=(await get(ref(db,"tokenIndex/"+await sha(token)))).val();
+      if(!idx)throw Error("Invalid token");
+      if(idx.active===false)throw Error("Token is disabled");
+      if(idx.expiresAt&&idx.expiresAt<Date.now())throw Error("Token expired");
+      step="read tokens";const tok=(await get(ref(db,"tokens/"+idx.tokenId))).val();
+      if(!tok||tok.active===false)throw Error("Token not found or revoked");
+      if(type==="admin"&&tok.role!=="zoneAdmin")throw Error("This is not an Admin token");
+      if(type==="user"&&tok.role==="zoneAdmin")throw Error("Use Admin Login for this token");
+      const p={role:tok.role,zoneId:tok.zoneId,name:tok.name,tokenId:idx.tokenId,createdAt:Date.now()};
+      step="write userProfiles";await set(ref(db,"userProfiles/"+uid),p);profile={uid,...p};
+      step="read zones";const z=(await get(ref(db,"zones/"+tok.zoneId))).val();
+      if(!z||z.active===false){profile=null;throw Error("This zone is disabled or deleted")}
+      watchToken(idx.tokenId);
+    }
+    msg("Login successful");log("login");showApp();
+  }catch(e){msg((e.message||"Login failed")+(/permission/i.test(e.message)?" (step: "+step+" — check Firebase Rules)":""),true);try{await signOut(auth)}catch(_){}}
+};
+$("logoutBtn").onclick=()=>signOut(auth);
+function showApp(){lastPage="";$("login").classList.add("hidden");$("app").classList.remove("hidden");$("identity").textContent=(profile.name||"User")+" • "+profile.role;loadData();render()}
+onAuthStateChanged(auth,async u=>{
+  if(!u){user=null;profile=null;Object.values(unsubs).forEach(f=>f());$("app").classList.add("hidden");$("login").classList.remove("hidden");return}
+  if(profile&&profile.uid===u.uid)return;
+  try{user=u;const s=await get(ref(db,"userProfiles/"+u.uid));if(!s.exists())return;profile={uid:u.uid,...s.val()};if(profile.tokenId)watchToken(profile.tokenId);showApp()}catch(e){console.error(e)}
+});
+function loadData(){
+  Object.keys(unsubs).filter(k=>k!=="tok").forEach(k=>{unsubs[k]();delete unsubs[k]});
+  Object.assign(cache,{zones:{},tokens:{},forms:{},records:{},auditLogs:{}});
+  const z=zoneId(),part={a:{},z:{}},q=(p,...c)=>query(ref(db,p),...c),byZone=(p,v,...x)=>q(p,orderByChild("zoneId"),equalTo(v),...x);
+  const listen=(k,r,fn)=>{unsubs[k]=onValue(r,s=>{fn(s.val()||{});if(profile&&!$("dialog"))render()},e=>console.error(k,e.message))};
+  if(isMaster()){
+    ["zones","tokens","forms","records"].forEach(p=>listen(p,ref(db,p),v=>cache[p]=v));
+    listen("auditLogs",q("auditLogs",limitToLast(300)),v=>cache.auditLogs=v);
+  }else{
+    listen("zones",ref(db,"zones/"+z),v=>cache.zones=Object.keys(v).length?{[z]:v}:{});
+    listen("fz",byZone("forms",z),v=>{part.z=v;cache.forms={...part.a,...part.z}});
+    listen("fa",byZone("forms","all"),v=>{part.a=v;cache.forms={...part.a,...part.z}});
+    if(!isAdmin())listen("records",q("records",orderByChild("tokenId"),equalTo(profile.tokenId||"-")),v=>{const had=Object.keys(cache.records),gone=had.filter(k=>!(k in v)).length;if(had.length&&gone)toast(gone+" record"+(gone>1?"s were":" was")+" removed","info");cache.records=v});
+    if(isAdmin()){
+      listen("tokens",byZone("tokens",z),v=>cache.tokens=v);
+      listen("records",byZone("records",z),v=>cache.records=v);
+      listen("auditLogs",byZone("auditLogs",z,limitToLast(300)),v=>cache.auditLogs=v);
+    }
+  }
+}
+document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>go(b.dataset.page));
+function go(p){page=p;document.querySelectorAll(".nav").forEach(b=>b.classList.toggle("active",b.dataset.page===p));render()}
+function allowedNav(){document.querySelectorAll(".nav").forEach(b=>{const r=b.dataset.role;b.classList.toggle("hide",(r==="master"&&!isMaster())||(r==="admin"&&!isAdmin())||(r==="user"&&profile.role!=="user")||(r==="zone"&&profile.role!=="zoneAdmin"))})}
+const PAGES={dashboard:()=>dashboard(),zones:()=>isMaster()&&zonesPage(),tokens:()=>isAdmin()&&tokensPage(),forms:()=>isAdmin()&&formsPage(),submit:()=>profile.role==="user"&&submitPage(),reports:()=>isAdmin()&&reportsPage(),logs:()=>isAdmin()&&logsPage(),settings:()=>profile.role==="zoneAdmin"&&settingsPage(),mine:()=>profile.role==="user"&&minePage(),fuel:()=>fuelPage()};
+const TITLES={mine:"My Records",fuel:"Fuel Sheet",logs:"Audit Logs",submit:"My Forms",forms:"Form Builder",settings:"Zone Settings"};
+function render(){
+  if(!profile)return;allowedNav();
+  const h=PAGES[page]?.();if(!h){page="dashboard";return render()}
+  $("pageTitle").textContent=TITLES[page]||page[0].toUpperCase()+page.slice(1);
+  const v=$("view"),same=page===lastPage,q=".tablewrap,.tabs",sc=[...v.querySelectorAll(q)].map(e=>[e.scrollLeft,e.scrollTop]),y=scrollY,ae=document.activeElement,aid=ae&&ae.id,as=ae&&ae.selectionStart;
+  v.innerHTML=h;
+  if(same){[...v.querySelectorAll(q)].forEach((e,i)=>{if(sc[i]){e.scrollLeft=sc[i][0];e.scrollTop=sc[i][1]}});scrollTo(0,y);if(aid==="repQ"&&$("repQ")){$("repQ").focus();try{$("repQ").setSelectionRange(as,as)}catch(e){}}}
+  else{lastPage=page;scrollTo(0,0);v.classList.remove("pg");void v.offsetWidth;v.classList.add("pg");clearTimeout(pgT);pgT=setTimeout(()=>v.classList.remove("pg"),700)}
+  cardify(v);bindPage();countUp(v);
+}
+function dashboard(){
+  const c=o=>scoped(o).length;
+  return `<h2>Welcome, ${esc(profile.name)}</h2><p class="muted">${isMaster()?"Master Center — global overview":"Zone: "+esc(zoneName(zoneId()))}</p>
+  <div class="grid">${[["Zones",isMaster()?Object.keys(cache.zones).length:1],["Forms",c(cache.forms)],["Tokens",c(cache.tokens)],["Records",c(cache.records)]].map(([k,v])=>`<div class="panel"><div class="muted">${k}</div><div class="stat" data-k="d${k}" data-count="${v}">${v}</div></div>`).join("")}</div>
+  <div class="panel"><h3>System status</h3><p class="ok">● Firebase connected — live sync</p><p class="muted">Client-side mode: enforce zone isolation with Realtime Database Rules too.</p></div>`;
+}
+function zonesPage(){
+  return `<div class="row"><h2>Zone Management</h2><button class="btn primary" id="addZone">+ Add Zone</button></div>
+  <div class="panel tablewrap"><table><tr><th>Zone</th><th>Fuel rate (L/H)</th><th>Status</th><th>Action</th></tr>
+  ${Object.entries(cache.zones).map(([i,z])=>`<tr><td>${esc(z.name)}</td><td>${z.fuelRate??2}</td><td>${z.active===false?"Disabled":"Active"}</td><td><button class="btn" data-zedit="${i}">Edit</button></td></tr>`).join("")}</table></div>`;
+}
+function tokensPage(){
+  return `<div class="row"><h2>Token Management</h2><button class="btn primary" id="addToken">+ Generate Token</button></div>
+  <div class="panel tablewrap"><table><tr><th>Token</th><th>Name</th><th>Role</th><th>Zone</th><th>Type</th><th>Expiry</th><th>Status</th><th>Action</th></tr>
+  ${scoped(cache.tokens).map(([i,t])=>{const exp=t.expiresAt&&t.expiresAt<Date.now();return `<tr><td><b>${esc(t.token||t.tokenMasked)}</b></td><td>${esc(t.name)}</td><td>${t.role==="zoneAdmin"?"Admin":"User"}</td><td>${esc(zoneName(t.zoneId))}</td><td>${t.expiresAt?"Expiry":"Permanent"}</td><td>${t.expiresAt?new Date(t.expiresAt).toLocaleDateString():"Never"}</td><td>${exp?"Expired":t.active===false?"Revoked":"Active"}</td>
+  <td>${t.token?`<button class="btn" data-copy="${esc(t.token)}">Copy</button> `:""}<button class="btn" data-tedit="${i}">Edit</button> <button class="btn" data-tog="${i}">${t.active===false?"Enable":"Revoke"}</button> <button class="btn danger" data-tdel="${i}">Delete</button></td></tr>`}).join("")}</table></div>`;
+}
+function formsPage(){
+  return `<div class="row"><h2>Dynamic Form Builder</h2><button class="btn primary" id="newForm">+ Create Form</button><button class="btn" id="pgTpl">+ PG RUN template</button><button class="btn" id="fuTpl">+ Fuel Withdraw template</button><button class="btn" id="usTpl">+ Fuel Usage template</button><button class="btn primary" id="xlImp">⬆ Import Excel → Template</button><input type="file" id="xlIn" accept=".xlsx,.xlsb,.xls,.csv" class="hidden"></div>
+  <div class="panel tablewrap"><table><tr><th>Form</th><th>Zone</th><th>Fields</th><th>Ver.</th><th>Status</th><th>Action</th></tr>
+  ${scoped(cache.forms).map(([i,f])=>{const own=isMaster()||f.zoneId===zoneId();return `<tr><td>${esc(f.icon||"")} ${esc(f.name)}</td><td>${esc(zoneName(f.zoneId))}</td><td>${(f.fields||[]).length}</td><td>${f.version||1}</td><td>${f.active?"Published":"Hidden"}</td>
+  <td>${own?`<button class="btn" data-edit="${i}">Edit</button> <button class="btn" data-hist="${i}">History</button> <button class="btn danger" data-fdel="${i}">Delete</button> `:""}<button class="btn" data-dup="${i}">Duplicate</button></td></tr>`}).join("")}</table></div>`;
+}
+function submitPage(){
+  const forms=Object.entries(cache.forms).filter(([,f])=>f.active&&(f.zoneId==="all"||f.zoneId===zoneId()));
+  return `<h2>My Forms</h2><div class="cols">${forms.map(([i,f])=>`<div class="panel"><h3>${esc(f.icon||"📋")} ${esc(f.name)}</h3><p class="muted">${(f.fields||[]).filter(x=>x.show!==false).length} fields</p><button class="btn primary" data-submit="${i}">Open Form</button></div>`).join("")||'<div class="panel">No forms assigned.</div>'}</div>`;
+}
+/* ===== Records: one tab per form (PG RUN, Fuel Withdraw, ...) ===== */
+const rep={form:"",q:"",month:""},sel=new Set();
+const fmtv=v=>v===undefined||v===null?"":typeof v==="boolean"?(v?"Yes":"No"):String(v).replace(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/,"$1 $2");
+function recGroups(){
+  const g={},mk=(k,name,icon)=>g[k]||(g[k]={id:k,name,icon,list:[]});
+  if(isAdmin())scoped(cache.forms).forEach(([fid,f])=>mk(fid,f.name,f.icon||"📋"));
+  scoped(cache.records).forEach(([id,r])=>{const k=r.formId||r.formName||"?",f=cache.forms[r.formId];mk(k,f?.name||r.formName||"Form",f?.icon||"📋").list.push([id,r])});
+  return g;
+}
+function curGroup(){const g=recGroups(),ks=Object.keys(g).sort((a,b)=>g[a].name.localeCompare(g[b].name));if(!g[rep.form])rep.form=ks[0]||"";return {g,ks,cur:g[rep.form]}}
+function recCols(g){
+  const f=cache.forms[g.id],keys=[],lab={};
+  (f?.fields||[]).forEach(x=>{if(x.show!==false){keys.push(x.key);lab[x.key]=x.label}});
+  g.list.forEach(([,r])=>Object.keys(r.data||{}).forEach(k=>{if(!keys.includes(k)){keys.push(k);lab[k]=r.labels?.[k]||k}}));
+  return {keys,lab};
+}
+function recFiltered(g){
+  const q=rep.q.trim().toLowerCase();
+  return g.list.filter(([,r])=>(!rep.month||String(r.date||"").slice(0,7)===rep.month)&&(!q||(r.userName+" "+Object.values(r.data||{}).join(" ")).toLowerCase().includes(q))).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
+}
+const selIn=g=>[...sel].filter(id=>g.list.some(([i])=>i===id));
+function recList(){
+  const {cur}=curGroup();if(!cur)return "";
+  const rows=recFiltered(cur),{keys,lab}=recCols(cur),adm=isAdmin(),ns=selIn(cur).length;
+  const bar=`<div class="bar"><b>${rows.length}</b><span class="muted">record${rows.length===1?"":"s"}${rows.length!==cur.list.length?" (filtered of "+cur.list.length+")":""}</span><span class="sp"></span>
+    <button class="btn primary" id="repXls">⬇ Excel</button><button class="btn" id="repCsv">⬇ CSV</button>
+    ${adm?`<button class="btn danger" id="repDelSel" ${ns?"":"disabled"}>🗑 Selected (<span id="selN">${ns}</span>)</button><button class="btn danger" id="repDelAll" ${rows.length?"":"disabled"}>🗑 Delete all (${rows.length})</button>`:""}</div>`;
+  if(isMob())return bar+`<div class="mcards">${rows.map(([id,r])=>{
+    const pv=keys.map(k=>[lab[k],fmtv(r.data?.[k])]).filter(x=>x[1]!=="").slice(0,5);
+    return `<div class="rcard" data-row="${id}"><div class="rtop">${adm?`<input type="checkbox" data-sel="${id}" ${sel.has(id)?"checked":""}>`:""}<b>${esc(r.date)}</b><span class="pill">${esc(r.userName)}</span></div>
+    <div class="rkv">${pv.map(([a,b])=>`<span>${esc(a)}</span><b>${esc(b)}</b>`).join("")}</div>
+    <div class="row"><button class="btn" data-view="${id}">View all</button>${profile.role==="user"?`<button class="btn" data-redit="${id}">Edit</button>`:""}<button class="btn danger" data-rdel="${id}">Delete</button></div></div>`}).join("")||'<div class="panel empty">No records found.</div>'}</div>`;
+  return bar+`<div class="panel tablewrap"><table class="keep rt"><tr>${adm?'<th><input type="checkbox" id="selAll"></th>':""}<th>#</th><th>Date</th><th>User</th><th>Zone</th>${keys.map(k=>`<th>${esc(lab[k])}</th>`).join("")}<th>Submitted</th><th></th></tr>
+  ${rows.map(([id,r],i)=>`<tr data-row="${id}">${adm?`<td><input type="checkbox" data-sel="${id}" ${sel.has(id)?"checked":""}></td>`:""}<td>${i+1}</td><td>${esc(r.date)}</td><td>${esc(r.userName)}</td><td>${esc(zoneName(r.zoneId))}</td>${keys.map(k=>`<td>${esc(fmtv(r.data?.[k]))}</td>`).join("")}<td>${new Date(r.createdAt).toLocaleString()}</td><td><button class="btn" data-view="${id}">View</button>${profile.role==="user"?` <button class="btn" data-redit="${id}">Edit</button>`:""} <button class="btn danger" data-rdel="${id}">Delete</button></td></tr>`).join("")||'<tr><td colspan="99" class="empty">No records found.</td></tr>'}</table></div>`;
+}
+function recPage(title){
+  const {g,ks,cur}=curGroup();
+  return `<h2>${title}</h2><p class="muted">${isAdmin()?"Each form has its own report. Deleting a record removes it for the user too, instantly.":"Only your own submissions are shown. You can edit or delete them; changes appear everywhere instantly."}</p>
+  <div class="tabs">${ks.map(k=>`<button class="tab ${k===rep.form?"on":""}" data-rtab="${esc(k)}">${esc(g[k].icon)} ${esc(g[k].name)}<span class="cnt">${g[k].list.length}</span></button>`).join("")}</div>
+  ${cur?`<div class="filters"><input id="repQ" class="search" placeholder="🔍 Search…" value="${esc(rep.q)}"><input type="month" id="repM" value="${esc(rep.month)}"><button class="btn" id="repClr">Clear</button></div><div id="repList">${recList()}</div>`:'<div class="panel empty">No forms or records yet.</div>'}`;
+}
+const reportsPage=()=>recPage("Reports"),minePage=()=>recPage("My Records");
+function bindRecords(){
+  all("[data-rtab]",b=>b.onclick=()=>{rep.form=b.dataset.rtab;rep.q="";rep.month="";sel.clear();render()});
+  const q=$("repQ");if(q)q.oninput=()=>{rep.q=q.value;refreshList()};
+  const m=$("repM");if(m)m.onchange=()=>{rep.month=m.value;refreshList()};
+  on("repClr",()=>{rep.q="";rep.month="";render()});
+  bindList();
+}
+function refreshList(){const el=$("repList");if(!el)return;el.innerHTML=recList();bindList()}
+function updSel(){const {cur}=curGroup(),n=cur?selIn(cur).length:0;if($("selN"))$("selN").textContent=n;if($("repDelSel"))$("repDelSel").disabled=!n}
+function bindList(){
+  const {cur}=curGroup();if(!cur)return;
+  all("#repList [data-view]",b=>b.onclick=()=>viewRecord(b.dataset.view));
+  all("#repList [data-sel]",c=>c.onchange=()=>{c.checked?sel.add(c.dataset.sel):sel.delete(c.dataset.sel);updSel()});
+  const sa=$("selAll");if(sa)sa.onchange=()=>{recFiltered(cur).forEach(([id])=>sa.checked?sel.add(id):sel.delete(id));all("#repList [data-sel]",c=>c.checked=sa.checked);updSel()};
+  all("#repList [data-rdel]",b=>b.onclick=()=>delRecords([b.dataset.rdel]));
+  all("#repList [data-redit]",b=>b.onclick=()=>{const r=cache.records[b.dataset.redit];if(!r||!cache.forms[r.formId])return alert("Form not found");submission(r.formId,b.dataset.redit)});
+  on("repXls",()=>{const rows=recFiltered(cur);if(!rows.length)return alert("No records to export");exportXLSX(rows,cur.name)});
+  on("repCsv",()=>{const rows=recFiltered(cur);if(!rows.length)return alert("No records to export");exportCSV(rows,cur.name)});
+  on("repDelSel",()=>delRecords(selIn(cur)));
+  on("repDelAll",()=>delRecords(recFiltered(cur).map(([id])=>id)));
+}
+async function delRecords(ids){
+  if(!isAdmin()&&profile.role!=="user")return;if(!ids.length)return alert("Nothing selected");
+  const {cur}=curGroup();
+  if(!confirm(`Delete ${ids.length} record(s) from "${cur.name}"?\n\nThey will be removed everywhere. This cannot be undone.`))return;
+  ids.forEach(id=>document.querySelectorAll(`[data-row="${id}"]`).forEach(e=>e.classList.add("leaving")));
+  await new Promise(r=>setTimeout(r,320));
+  const s=fx("Deleting…");
+  try{await Promise.all(ids.map(id=>remove(ref(db,"records/"+id))));ids.forEach(i=>sel.delete(i));log("records deleted",`${cur.name} × ${ids.length}`);await s.ok(ids.length+" deleted")}
+  catch(e){refreshList();alert(e.message)}
+}
+function logsPage(){
+  return `<h2>Audit Logs</h2><div class="panel tablewrap"><table><tr><th>Time</th><th>By</th><th>Role</th><th>Zone</th><th>Action</th><th>Detail</th></tr>
+  ${scoped(cache.auditLogs).sort((a,b)=>b[1].at-a[1].at).map(([,l])=>`<tr><td>${new Date(l.at).toLocaleString()}</td><td>${esc(l.by)}</td><td>${esc(l.role)}</td><td>${esc(zoneName(l.zoneId))}</td><td>${esc(l.action)}</td><td>${esc(l.detail)}</td></tr>`).join("")}</table></div>`;
+}
+function settingsPage(){
+  const z=cache.zones[zoneId()]||{};
+  return `<h2>Zone Settings</h2><div class="panel" style="max-width:480px"><div class="field"><label>Zone Name</label><input id="zoneName" value="${esc(z.name||"")}"></div>
+  <div class="field"><label>Fuel Rate (Liter / Hour)</label><input id="fuelRate" type="number" min="0" step=".01" value="${z.fuelRate??2}"></div>
+  <p class="muted">Changing the rate does not alter past reports.</p><button class="btn primary" id="saveZone">Save Settings</button></div>`;
+}
+const on=(id,fn)=>{if($(id))$(id).onclick=fn};
+const all=(sel,fn)=>document.querySelectorAll(sel).forEach(fn);
+function bindPage(){
+  on("addZone",()=>zoneDialog());
+  all("[data-zedit]",b=>b.onclick=()=>zoneDialog(b.dataset.zedit));
+  on("addToken",tokenDialog);
+  all("[data-tog]",b=>b.onclick=async()=>{const t=cache.tokens[b.dataset.tog],on_=t.active===false;await update(ref(db,"tokens/"+b.dataset.tog),{active:on_});await update(ref(db,"tokenIndex/"+t.hash),{active:on_});(log(on_?"token enabled":"token revoked",t.name),toast(on_?"Token enabled":"Token revoked","ok"))});
+  all("[data-reset]",b=>b.onclick=async()=>{const id=b.dataset.reset,t=cache.tokens[id];if(!confirm("Reset token for "+t.name+"? The old token stops working."))return;
+    const plain=genToken(),h=await sha(plain);await remove(ref(db,"tokenIndex/"+t.hash));
+    await set(ref(db,"tokenIndex/"+h),{tokenId:id,zoneId:t.zoneId,role:t.role,active:true,expiresAt:t.expiresAt||null});
+    await update(ref(db,"tokens/"+id),{token:plain,hash:h,tokenMasked:plain.slice(0,4)+"••••"+plain.slice(-2),active:true});log("token reset",t.name);copyText(plain);alert("New token created and copied:\n\n"+plain)});
+  all("[data-tdel]",b=>b.onclick=async()=>{const t=cache.tokens[b.dataset.tdel];if(!confirm("Delete token for "+t.name+"?"))return;await remove(ref(db,"tokenIndex/"+t.hash));await remove(ref(db,"tokens/"+b.dataset.tdel));(log("token deleted",t.name),toast("Token deleted","ok"))});
+  all("[data-copy]",b=>b.onclick=async()=>{await copyText(b.dataset.copy);b.textContent="Copied ✓";setTimeout(()=>b.textContent="Copy",1200)});
+  all("[data-tedit]",b=>b.onclick=()=>tokenEdit(b.dataset.tedit));
+  on("newForm",()=>formEditor());
+  on("pgTpl",()=>saveNewForm(pgTemplate()));on("fuTpl",()=>saveNewForm(fuelTemplate()));on("usTpl",()=>saveNewForm(usageTemplate()));
+  on("xlImp",()=>$("xlIn").click());if($("xlIn"))$("xlIn").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)importExcel(f)};
+  bindRecords();
+  if($("fuelM"))$("fuelM").onchange=e=>{fuelMonth=e.target.value||fuelMonth;render()};on("fuelX",exportFuelXLSX);
+  all("[data-edit]",b=>b.onclick=()=>formEditor(b.dataset.edit));
+  all("[data-dup]",b=>b.onclick=()=>{const f=JSON.parse(JSON.stringify(cache.forms[b.dataset.dup]));delete f.versions;f.name+=" (Copy)";f.version=1;f.zoneId=isMaster()?f.zoneId:zoneId();saveNewForm(f)});
+  all("[data-fdel]",b=>b.onclick=async()=>{const f=cache.forms[b.dataset.fdel];if(confirm("Delete form '"+f.name+"'? Existing reports are kept.")){await remove(ref(db,"forms/"+b.dataset.fdel));(log("form deleted",f.name),toast("Form deleted","ok"))}});
+  all("[data-hist]",b=>b.onclick=()=>history(b.dataset.hist));
+  all("[data-submit]",b=>b.onclick=()=>submission(b.dataset.submit));
+  on("saveZone",async()=>{const s=fx("Saving settings…");try{await update(ref(db,"zones/"+zoneId()),{name:$("zoneName").value.trim(),fuelRate:Number($("fuelRate").value)});log("zone settings",`rate ${$("fuelRate").value}`);await s.ok("Settings saved")}catch(e){alert(e.message)}});
+  
+}
+function zoneDialog(id){
+  const z=id?cache.zones[id]:{name:"",fuelRate:2,active:true};
+  showDialog(id?"Edit Zone":"Add Zone",`<div class="field"><label>Zone name</label><input id="zN" value="${esc(z.name)}"></div><div class="field"><label>Fuel rate (L/H)</label><input id="zR" type="number" min="0" step=".01" value="${z.fuelRate??2}"></div><label><input id="zA" type="checkbox" ${z.active!==false?"checked":""}> Active</label>
+  <p><button class="btn primary" id="zS">Save</button> ${id?'<button class="btn danger" id="zD">Delete zone</button>':""}</p>`);
+  $("zS").onclick=async()=>{const d={name:$("zN").value.trim(),fuelRate:Number($("zR").value),active:$("zA").checked};if(!d.name)return alert("Zone name required");
+    const s=fx("Saving zone…");id?await update(ref(db,"zones/"+id),d):await set(push(ref(db,"zones")),{...d,createdAt:Date.now()});log(id?"zone edited":"zone created",d.name);await s.ok("Zone saved");closeDialog()};
+  if(id)$("zD").onclick=async()=>{if(confirm("Delete zone '"+z.name+"' and ALL its tokens permanently?")){for(const[ti,t]of Object.entries(cache.tokens).filter(([,t])=>t.zoneId===id)){await remove(ref(db,"tokenIndex/"+t.hash));await remove(ref(db,"tokens/"+ti))}await remove(ref(db,"zones/"+id));log("zone deleted",z.name);closeDialog()}};
+}
+function tokenDialog(){
+  if(isMaster()&&!Object.keys(cache.zones).length)return alert("Create a zone first");
+  showDialog("Generate Token",`<div class="field"><label>Name</label><input id="tN"></div>
+  <div class="field"><label>Role</label><select id="tR"><option value="user">User</option>${isMaster()?'<option value="zoneAdmin">Zone Admin</option>':""}</select></div>
+  ${isMaster()?`<div class="field"><label>Zone</label><select id="tZ">${zoneOpts("")}</select></div>`:""}
+  <div class="field"><label>Type</label><select id="tT"><option value="p">Permanent</option><option value="e">Expiry</option></select></div>
+  <div class="field hidden" id="tEB"><label>Expiry date</label><input id="tE" type="date"></div><button class="btn primary" id="tS">Generate</button>`);
+  $("tT").onchange=()=>$("tEB").classList.toggle("hidden",$("tT").value!=="e");
+  $("tS").onclick=async()=>{
+    const name=$("tN").value.trim();if(!name)return alert("Name required");
+    const exp=$("tT").value==="e"?(($("tE").value&&new Date($("tE").value+"T23:59:59").getTime())||0):null;
+    if(exp===0)return alert("Pick an expiry date");
+    const s=fx("Generating token…");try{const plain=genToken(),hash=await sha(plain),id=push(ref(db,"tokens")).key,zid=isMaster()?$("tZ").value:zoneId(),role=isMaster()?$("tR").value:"user";
+      await set(ref(db,"tokens/"+id),{token:plain,hash,tokenMasked:plain.slice(0,4)+"••••"+plain.slice(-2),name,zoneId:zid,role,active:true,createdAt:Date.now(),createdBy:user.uid,expiresAt:exp});
+      await set(ref(db,"tokenIndex/"+hash),{tokenId:id,zoneId:zid,role,active:true,expiresAt:exp});
+      log("token created",name);await s.ok("Token created");closeDialog();copyText(plain);alert("Token created and copied:\n\n"+plain+"\n\nYou can copy it again anytime from the Tokens list.")}catch(e){alert(e.message)}
+  };
+}
+function tokenEdit(id){
+  const t=cache.tokens[id];if(!t)return;
+  showDialog("Edit Token — "+t.name,`<div class="field"><label>Name</label><input id="eN" value="${esc(t.name)}"></div>
+  ${isMaster()?`<div class="field"><label>Role</label><select id="eR"><option value="user" ${t.role==="user"?"selected":""}>User</option><option value="zoneAdmin" ${t.role==="zoneAdmin"?"selected":""}>Zone Admin</option></select></div>
+  <div class="field"><label>Zone</label><select id="eZ">${zoneOpts(t.zoneId)}</select></div>`:""}
+  <div class="field"><label>Type</label><select id="eT"><option value="p" ${t.expiresAt?"":"selected"}>Permanent</option><option value="e" ${t.expiresAt?"selected":""}>Expiry</option></select></div>
+  <div class="field ${t.expiresAt?"":"hidden"}" id="eEB"><label>Expiry date</label><input id="eE" type="date" value="${t.expiresAt?new Date(t.expiresAt).toISOString().slice(0,10):""}"></div>
+  <p class="muted">Changes apply to the logged-in user immediately.</p><button class="btn primary" id="eS">Save</button>`);
+  $("eT").onchange=()=>$("eEB").classList.toggle("hidden",$("eT").value!=="e");
+  $("eS").onclick=async()=>{
+    const name=$("eN").value.trim();if(!name)return alert("Name required");
+    const role=isMaster()?$("eR").value:t.role,zid=isMaster()?$("eZ").value:t.zoneId;
+    const exp=$("eT").value==="e"?(($("eE").value&&new Date($("eE").value+"T23:59:59").getTime())||0):null;
+    if(exp===0)return alert("Pick an expiry date");
+    const s=fx("Updating token…");try{await update(ref(db,"tokens/"+id),{name,role,zoneId:zid,expiresAt:exp});
+      if(t.hash)await update(ref(db,"tokenIndex/"+t.hash),{role,zoneId:zid,expiresAt:exp});
+      log("token edited",`${t.name} → ${name}, ${role}, ${zoneName(zid)}`);await s.ok("Token updated");closeDialog()}catch(e){alert(e.message)}
+  };
+}
+/* ===== Form builder ===== */
+const TYPES=["text","number","date","time","datetime","dropdown","multiselect","checkbox","textarea","calculation"],RESERVED=["hours","round","min","max","concat","serial","mon","tod"];
+const slug=(l,used)=>{let k=String(l).toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"")||"f";if(/^\d/.test(k)||RESERVED.includes(k))k="f_"+k;let n=k,i=2;while(used.includes(n))n=k+"_"+i++;return n};
+const FD=(key,label,type,o={})=>({key,label,type,show:true,...o});
+const baseForm=(name,icon,fields)=>({name,icon,active:true,version:1,zoneId:isMaster()?"all":zoneId(),fields});
+const pgTemplate=()=>baseForm("PG RUN","⚡",[
+ FD("unique_id","Unique ID","calculation",{formula:"concat(site_name,serial(final_pg_start_time),month)"}),
+ FD("site_name","Site Name","text",{required:true}),FD("sc_name","SC Name","text"),FD("umb_circle_name","Umb Circle Name","text"),
+ FD("package_information","Package Information","dropdown",{options:"Package 1,Package 2,Package 3,Package 4,Package 5,Package 6,Package 7"}),
+ FD("vendor","Vendor","dropdown",{options:"DITL,FTBL"}),
+ FD("final_pg_start_time","Final PG Start Time","datetime",{required:true}),FD("final_pg_stop_time","Final PG Stop Time","datetime",{required:true}),
+ FD("hsse_time_slot","HSSE Time Slot","calculation",{formula:"tod(final_pg_start_time)"}),
+ FD("claimed_pg_rh","Claimed PG RH","calculation",{formula:"hours(final_pg_start_time,final_pg_stop_time)"}),
+ FD("month","Month","calculation",{formula:"mon(final_pg_start_time)"}),
+ FD("mf","MF","datetime"),FD("batt","Batt","datetime"),FD("down","Down","datetime"),FD("door","Door","datetime"),
+ FD("vendor_comment","Vendor Comment","text"),
+ FD("team_present_during_pg_run_yes_no","Team Present During PG Run (Yes/ No)","dropdown",{options:"Yes,No"}),
+ FD("site_class","Site Class","dropdown",{options:"A,B,C"}),FD("tx_dependency","TX Dependency","number"),
+ FD("hse_violation","HSE Violation","dropdown",{options:"Yes,No"}),FD("pg_no_serial","PG No/Serial","text"),
+ FD("pg_runner_name","PG Runner Name","text"),FD("employee_id","Employee ID","number"),FD("employee_number","Employee Number","number"),
+ FD("neteco_setting_change_during_pg_run_yes_no","NetEco Setting Change During PG Run (Yes/ No)","dropdown",{options:"Yes,No"}),
+ FD("rate","Zone Fuel Rate (L/Hour)","number",{readonly:true,default:"@rate"}),
+ FD("fuel","Fuel Consumption (L)","calculation",{formula:"round(claimed_pg_rh*rate,2)"})]);
+const fuelTemplate=()=>baseForm("Fuel Withdraw","⛽",[FD("operator_name","Operator","text"),FD("date","Date","date",{required:true}),FD("fuel_received","Fuel Received (L)","number",{min:"0"}),FD("pg_run_h","PG Run(H) — only if not logged in PG RUN","number",{min:"0"}),FD("fuel_in_hand","Fuel In Hand (L)","number",{min:"0"})]);
+const usageTemplate=()=>baseForm("Fuel Usage (Support)","🛢️",[FD("operator_name","Name","text"),FD("date","Date","date",{required:true}),FD("used_fuel","Used Fuel (L)","number",{required:true,min:"0"}),FD("purpose","Purpose","text"),FD("site","Site","text")]);
+async function saveNewForm(f,quiet){const s=quiet?null:fx("Creating form…");f.createdAt=Date.now();f.updatedAt=Date.now();await set(push(ref(db,"forms")),f);log("form created",f.name);if(s)await s.ok("Form created")}
+const fieldCard=(f,i)=>{const a=`data-i="${i}"`,inp=(k,ph,t="text")=>`<input ${a} data-k="${k}" type="${t}" placeholder="${ph}" value="${esc(f[k]??"")}">`;
+  return `<div class="fcard"><div class="fieldrow"><input ${a} data-k="label" placeholder="Label" value="${esc(f.label)}"><select ${a} data-k="type">${TYPES.map(t=>`<option ${f.type===t?"selected":""}>${t}</option>`).join("")}</select>
+  <label><input type="checkbox" ${a} data-k="show" ${f.show!==false?"checked":""}> Show</label><label><input type="checkbox" ${a} data-k="required" ${f.required?"checked":""}> Required</label><label><input type="checkbox" ${a} data-k="readonly" ${f.readonly?"checked":""}> Read-only</label></div>
+  <div class="fr2">${inp("default","Default (@rate = zone rate)")}${inp("placeholder","Placeholder")}${inp("min","Min","number")}${inp("max","Max","number")}${inp("options","Options: a,b,c")}${inp("formula","Formula e.g. hours(a,b)*rate")}</div>
+  <div class="row"><button class="btn" data-mv="${i}:-1">↑</button><button class="btn" data-mv="${i}:1">↓</button><button class="btn danger" data-del="${i}">Delete</button><span class="muted">key: ${esc(f.key)}</span></div></div>`};
+function paintFields(){$("fieldList").innerHTML=draft.fields.map(fieldCard).join("");bindFieldRows()}
+function bindFieldRows(){
+  all("#dialog [data-i]",el=>el.onchange=()=>{const f=draft.fields[+el.dataset.i],k=el.dataset.k;f[k]=el.type==="checkbox"?el.checked:el.value});
+  all("#dialog [data-del]",el=>el.onclick=()=>{draft.fields.splice(+el.dataset.del,1);paintFields()});
+  all("#dialog [data-mv]",el=>el.onclick=()=>{const[i,d]=el.dataset.mv.split(":").map(Number),j=i+d;if(j<0||j>=draft.fields.length)return;[draft.fields[i],draft.fields[j]]=[draft.fields[j],draft.fields[i]];paintFields()});
+}
+function formEditor(id){
+  const old=id?cache.forms[id]:null;
+  draft=old?JSON.parse(JSON.stringify(old)):{name:"",icon:"📋",zoneId:isMaster()?"all":zoneId(),active:true,version:1,fields:[{label:"Date",key:"date",type:"date",show:true,required:true}]};
+  delete draft.versions;
+  showDialog(id?"Edit Form":"Create Form",`<div class="field"><label>Form Name</label><input id="dName" value="${esc(draft.name)}"></div><div class="field"><label>Icon</label><input id="dIcon" value="${esc(draft.icon)}"></div>
+  ${isMaster()?`<div class="field"><label>Zone</label><select id="dZone">${zoneOpts(draft.zoneId,true)}</select></div>`:""}
+  <label><input id="dActive" type="checkbox" ${draft.active?"checked":""}> Published</label><h3>Fields</h3><div id="fieldList"></div>
+  <button class="btn" id="addField">+ Add Field</button><p><button class="btn primary" id="saveForm">Save Form</button></p>`);
+  paintFields();
+  $("addField").onclick=()=>{const n="New Field";draft.fields.push({label:n,key:slug(n,draft.fields.map(f=>f.key)),type:"text",show:true});paintFields()};
+  $("saveForm").onclick=async()=>{
+    draft.name=$("dName").value.trim();draft.icon=$("dIcon").value||"📋";draft.active=$("dActive").checked;draft.zoneId=isMaster()?$("dZone").value:zoneId();
+    if(!draft.name||!draft.fields.length)return alert("Form name and at least one field required");
+    const used=[];draft.fields.forEach(f=>{if(!f.key||used.includes(f.key))f.key=slug(f.label,used);used.push(f.key)});
+    const s=fx("Saving form…");try{draft.updatedAt=Date.now();
+      if(id){await set(ref(db,`forms/${id}/versions/${Date.now()}`),{name:old.name,fields:old.fields,version:old.version||1,savedAt:Date.now()});draft.version=(old.version||1)+1;await update(ref(db,"forms/"+id),draft);log("form edited",`${draft.name} v${draft.version}`)}
+      else await saveNewForm(draft,true);await s.ok("Form saved");
+      closeDialog()}catch(e){alert(e.message)}
+  };
+}
+function history(id){
+  const f=cache.forms[id],v=Object.entries(f.versions||{}).sort((a,b)=>b[0]-a[0]);
+  showDialog("Version history — "+f.name,`<p class="muted">Current: v${f.version||1}</p>${v.map(([k,x])=>`<div class="row" style="justify-content:space-between"><span>v${x.version} • ${new Date(x.savedAt).toLocaleString()} • ${(x.fields||[]).length} fields</span><button class="btn" data-rest="${k}">Restore</button></div>`).join("")||"No older versions."}`);
+  all("#dialog [data-rest]",b=>b.onclick=async()=>{const x=f.versions[b.dataset.rest];if(!confirm("Restore v"+x.version+"?"))return;
+    await set(ref(db,`forms/${id}/versions/${Date.now()}`),{name:f.name,fields:f.fields,version:f.version||1,savedAt:Date.now()});
+    await update(ref(db,"forms/"+id),{fields:x.fields,version:(f.version||1)+1,updatedAt:Date.now()});log("form restored",`${f.name} from v${x.version}`);closeDialog()});
+}
+/* ===== Calculation engine ===== */
+const mins=t=>{const[h,m]=String(t||"").split(":").map(Number);return isNaN(h)||isNaN(m)?NaN:h*60+m};
+const dt=v=>{const d=new Date(String(v).length===10?v+"T00:00":v);return isNaN(d)?null:d};
+const tod=a=>{const d=dt(a);return d?+(d.getHours()+d.getMinutes()/60).toFixed(4):0};
+const mon=a=>{const d=dt(a);return d?d.toLocaleString("en",{month:"short"}):""};
+const serial=a=>{const d=dt(a);return d?+((d.getTime()-d.getTimezoneOffset()*6e4)/864e5+25569).toPrecision(15):""};
+const concat=(...a)=>a.join("");
+const hours=(a,b)=>{if(String(a).includes("T")||String(b).includes("T")){const p=dt(a),q=dt(b);return p&&q?Math.max(0,(q-p)/36e5):0}const x=mins(a);let y=mins(b);if(isNaN(x)||isNaN(y))return 0;if(y<x)y+=1440;return (y-x)/60};
+function calc(f,vals,rate){
+  const fx=f.formula||"",names=Object.keys(vals).filter(k=>k!=="rate"&&!RESERVED.includes(k)&&/^[A-Za-z_]\w*$/.test(k)),allowed=new Set([...names,"rate",...RESERVED]);
+  if(!fx||!/^[\w\s+\-*/%(),<>=!&|?:.]*$/.test(fx)||/\.[A-Za-z_]/.test(fx)||!(fx.match(/[A-Za-z_]\w*/g)||[]).every(n=>allowed.has(n)))return "";
+  try{return new Function(...names,"rate",...RESERVED,"return ("+fx+")")(...names.map(n=>vals[n]),rate,hours,(n,d=2)=>+(+n).toFixed(d),Math.min,Math.max,concat,serial,mon,tod)}catch(e){return ""}
+}
+function compute(f,data){
+  const zr=Number(cache.zones[zoneId()]?.fuelRate??2),typ={},out={};(f.fields||[]).forEach(x=>typ[x.key]=x.type);
+  Object.entries(data).forEach(([k,v])=>out[k]=typ[k]==="number"?(v===""?0:Number(v)):v);
+  const rate=out.rate!==undefined&&out.rate!==""?Number(out.rate):zr;
+  (f.fields||[]).forEach(x=>{if(x.type==="calculation")out[x.key]=""});
+  for(let p=0;p<3;p++)(f.fields||[]).forEach(x=>{if(x.type==="calculation")out[x.key]=calc(x,out,rate)});
+  return {out,rate};
+}
+function submission(id,editId){const ex=editId?cache.records[editId]:null;
+  const f=cache.forms[id],zr=Number(cache.zones[zoneId()]?.fuelRate??2),fs=(f.fields||[]).filter(x=>x.show!==false);
+  const html=fs.map(x=>{const me=x.default==="@me"||(/operator|oprater|runner name/i.test(x.label)&&x.type==="text"&&!x.default),k=esc(x.key),d=ex&&ex.data&&ex.data[x.key]!==undefined?ex.data[x.key]:x.default==="@rate"?zr:me?profile.name:(x.default??""),ro=x.readonly||me?"readonly":"",rq=x.required?"required":"",opts=String(x.options||"Yes,No,Other").split(",").map(s=>s.trim()).filter(Boolean);
+    const c=x.type==="calculation"?`<div class="calc" data-calc="${k}">—</div>`
+    :x.type==="textarea"?`<textarea data-key="${k}" placeholder="${esc(x.placeholder||"")}" ${ro} ${rq}>${esc(d)}</textarea>`
+    :x.type==="dropdown"||x.type==="multiselect"?`<select data-key="${k}" ${x.type==="multiselect"?"multiple":""} ${x.readonly?"disabled":""} ${rq}>${x.type==="dropdown"?'<option value="">Select</option>':""}${opts.map(o=>`<option ${(x.type==="multiselect"?String(d).split(", ").includes(o):o===d)?"selected":""}>${esc(o)}</option>`).join("")}</select>`
+    :x.type==="checkbox"?`<input type="checkbox" data-key="${k}" ${d===true||d==="true"?"checked":""} ${x.readonly?"disabled":""}>`
+    :`<input data-key="${k}" type="${{number:"number",date:"date",time:"time",datetime:"datetime-local"}[x.type]||"text"}" placeholder="${esc(x.placeholder||"")}" value="${esc(d)}" ${x.min!==undefined&&x.min!==""?`min="${esc(x.min)}"`:""} ${x.max!==undefined&&x.max!==""?`max="${esc(x.max)}"`:""} ${x.type==="number"?'step="any"':""} ${ro} ${rq}>`;
+    return `<div class="field"><label>${esc(x.label)} ${x.required?"*":""}</label>${c}</div>`}).join("");
+  showDialog(f.name,`<form id="submitForm">${html}<button class="btn primary">Submit Record</button></form>`);
+  const collect=()=>{const d={};all("#submitForm [data-key]",el=>d[el.dataset.key]=el.type==="checkbox"?el.checked:el.multiple?[...el.selectedOptions].map(o=>o.value).join(", "):el.value);return d};
+  const refresh=()=>{const{out}=compute(f,collect());all("#submitForm [data-calc]",el=>{let v=out[el.dataset.calc];if(v===""||v===undefined||v!==v)return el.textContent="—";if(el.dataset.calc==="runtime"){const m=Math.round(v*60);v=`${v} h (${Math.floor(m/60)}h ${m%60}m)`}el.textContent=v})};
+  $("submitForm").oninput=refresh;$("submitForm").onchange=refresh;refresh();
+  $("submitForm").onsubmit=async e=>{e.preventDefault();
+    const{out,rate}=compute(f,collect()),labels={};(f.fields||[]).forEach(x=>labels[x.key]=x.label);
+    (f.fields||[]).forEach(x=>{if(/operator|oprater|runner name/i.test(x.label)&&x.type==="text"&&!x.default||x.default==="@me")out[x.key]=profile.name});
+    const df=(f.fields||[]).find(x=>x.type==="date"||x.type==="datetime"),dv=df&&out[df.key]?String(out[df.key]).slice(0,10):new Date().toISOString().slice(0,10);
+    const hasRt=out.runtime!==undefined||out.claimed_pg_rh!==undefined,rt=Number(out.runtime??out.claimed_pg_rh)||0,fl=out.fuel!==undefined?Number(out.fuel)||0:(hasRt?+(rt*rate).toFixed(2):0);
+    const s=fx("Saving record…");try{if(editId){await update(ref(db,"records/"+editId),{data:out,date:dv,runtimeHours:rt,fuelLiters:fl,fuelRate:rate,editedAt:Date.now()})}else await set(push(ref(db,"records")),{formId:id,formName:f.name,formVersion:f.version||1,userName:profile.name,userId:user.uid,tokenId:profile.tokenId||"",zoneId:zoneId(),data:out,labels,date:dv,runtimeHours:rt,fuelLiters:fl,fuelRate:rate,createdAt:Date.now()});
+      log("record submitted",f.name);await s.ok("Record saved");closeDialog()}catch(err){alert(err.message)}};
+}
+function showDialog(title,body){
+  closeDialog(true);const d=document.createElement("div");d.id="dialog";d.className="dlg";d.style="position:fixed;inset:0;background:#07132699;display:grid;place-items:center;padding:15px;z-index:20";
+  d.innerHTML=`<div class="panel" style="width:min(720px,100%);max-height:90vh;overflow:auto"><div class="row" style="justify-content:space-between"><h2>${esc(title)}</h2><button class="btn" id="closeDlg">Close</button></div>${body}</div>`;
+  document.body.append(d);$("closeDlg").onclick=closeDialog;
+}
+function closeDialog(now){const d=$("dialog");if(d){if(now===true)d.remove();else{d.id="dialogX";d.classList.add("out");setTimeout(()=>d.remove(),210)}}if(profile&&now!==true)render()}
+function exportCSV(entries,label){
+  const rows=(entries||scoped(cache.records)).map(([,r])=>r),keys=[],lab={};
+  rows.forEach(r=>Object.keys(r.data||{}).forEach(k=>{if(!keys.includes(k))keys.push(k);lab[k]=lab[k]||r.labels?.[k]||k}));
+  const data=[["Date","Form","Version","User","Zone","Runtime Hours","Fuel Liters","Fuel Rate",...keys.map(k=>lab[k])],...rows.map(r=>[r.date,r.formName,r.formVersion||1,r.userName,zoneName(r.zoneId),r.runtimeHours,r.fuelLiters,r.fuelRate,...keys.map(k=>r.data?.[k])])];
+  const csv=data.map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\n"),a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}));a.download="RAFINOOR-"+(label?label.replace(/\s+/g,"-")+"-"+new Date().toISOString().slice(0,10):"Reports")+".csv";a.click();URL.revokeObjectURL(a.href);log("csv export",label||"");toast("CSV download started","ok");
+}
+/* ===== Excel -> form template (rule-based auto reader) ===== */
+function xlAnalyze(XLSX,ws){
+  if(!ws||!ws["!ref"])return null;
+  const R=XLSX.utils.decode_range(ws["!ref"]),cell=(r,c)=>ws[XLSX.utils.encode_cell({r,c})];
+  const txt=c=>c&&c.v!==undefined&&c.v!==null?String(c.v).replace(/\s+/g," ").trim():"";
+  let hr=-1,best=0;
+  for(let r=R.s.r;r<=Math.min(R.e.r,R.s.r+14);r++){let n=0;for(let c=R.s.c;c<=R.e.c;c++){const x=cell(r,c);if(x&&x.t==="s"&&txt(x))n++}if(n>best){best=n;hr=r}}
+  if(hr<0||best<2)return null;
+  const seen=new Set(),cols=[];let repeated=0;
+  for(let c=R.s.c;c<=R.e.c;c++){const l=txt(cell(hr,c));if(!l)continue;const k=l.toLowerCase();if(seen.has(k)){repeated++;continue}seen.add(k);cols.push({c,label:l,letter:XLSX.utils.encode_col(c)})}
+  const rows=[];
+  for(let r=hr+1;r<=Math.min(R.e.r,hr+40);r++){if(!cols.some(x=>txt(cell(r,x.c))!==""))break;rows.push(r)}
+  const used=[];cols.forEach(x=>{x.key=slug(x.label,used);used.push(x.key)});
+  const map={};cols.forEach(x=>map[x.letter]=x);
+  const isTimeFmt=c=>c.z&&/h+:m/i.test(c.z)&&!/[dy]/i.test(c.z.replace(/\[.*?\]/g,""));
+  cols.forEach(x=>{
+    const cells=rows.map(r=>cell(r,x.c)),vs=cells.filter(c=>c&&c.v!==undefined&&c.v!==null&&c.v!==""),fc=cells.find(c=>c&&c.f);
+    x.fcell=fc;x.type="text";
+    if(!vs.length)return;
+    if(vs.every(c=>c.v instanceof Date)){x.type=vs.some(c=>c.v.getHours()||c.v.getMinutes())?"datetime":"date"}
+    else if(vs.every(c=>c.t==="n")){x.type=(vs.every(isTimeFmt)||(/time/i.test(x.label)&&vs.every(c=>c.v>=0&&c.v<1)))?"time":"number"}
+    else if(vs.every(c=>c.t==="b")){x.type="checkbox"}
+    else{const d=[...new Set(vs.map(c=>String(c.v).trim()))];
+      if(vs.length>=6&&d.length<=6&&d.every(v=>v.length<=30)){x.type="dropdown";x.options=d.every(v=>/^(yes|no)$/i.test(v))?"Yes,No":d.join(",")}
+      else if(vs.reduce((a,c)=>a+String(c.v).length,0)/vs.length>60)x.type="textarea"}
+  });
+  cols.forEach(x=>{
+    if(!x.fcell)return;
+    const r=rows.find(r=>cell(r,x.c)&&cell(r,x.c).f)+1,f=xlTranslate(x.fcell.f,r,map);
+    x.excel="="+x.fcell.f;
+    if(f){x.formula=f;x.ftype=x.type;x.type="calculation"}
+  });
+  return {hr,cols,rows:rows.length,wide:cols.length>40||repeated>=3,repeated};
+}
+function xlTranslate(f,row,map){
+  let s=String(f).trim().replace(/^=/,"");
+  const keyOf=(letter)=>map[letter]?map[letter].key:null,typeOf=k=>(Object.values(map).find(x=>x.key===k)||{}).type;
+  let bad=false;
+  s=s.replace(/IF\(\s*[A-Z]+\d+\s*=\s*""\s*,\s*""\s*,\s*TEXT\(\s*DATE\(\s*\d+\s*,\s*MONTH\(\s*([A-Z]+\d+)\s*\)\s*,\s*1\s*\)\s*,\s*"mmm"\s*\)\s*\)/gi,"mon($1)");
+  s=s.replace(/TEXT\(\s*([^,()]+?)\s*,\s*"mmm"\s*\)/gi,"mon($1)").replace(/MOD\(\s*([^,()]+?)\s*,\s*1\s*\)\s*\*\s*24/gi,"tod($1)");
+  s=s.replace(/SUM\(([^()]*)\)/gi,(m,a)=>{
+    const parts=a.split(",").map(p=>p.trim()).flatMap(p=>{
+      const g=p.match(/^\$?([A-Z]+)\$?(\d+):\$?([A-Z]+)\$?(\d+)$/);
+      if(!g)return [p];
+      if(Number(g[2])!==row||Number(g[4])!==row){bad=true;return []}
+      const a1=XLSXcol(g[1]),a2=XLSXcol(g[3]);
+      return Object.values(map).filter(x=>x.c>=a1&&x.c<=a2).map(x=>x.letter+row);
+    });
+    return "("+(parts.join("+")||"0")+")";
+  });
+  s=s.replace(/\b(ROUND|MIN|MAX)\(/gi,m=>m.toLowerCase());
+  const ref=(l,n,dt)=>{if(Number(n)!==row||!map[l]){bad=true;return "0"}const k=map[l].key;return dt&&/^date/.test(map[l].type)?`serial(${k})`:k};
+  if(s.includes("&")){
+    const parts=[];let d=0,cur="";
+    for(const ch of s){if(ch==="(")d++;if(ch===")")d--;if(ch==="&"&&d===0){parts.push(cur);cur=""}else cur+=ch}
+    parts.push(cur);
+    s="concat("+parts.map(p=>p.trim().replace(/^\$?([A-Z]{1,3})\$?(\d+)$/,(m,l,n)=>ref(l,n,true))).join(",")+")";
+  }
+  s=s.replace(/\$?\b([A-Z]{1,3})\$?(\d+)\b/g,(m,l,n)=>ref(l,n,false));
+  s=s.replace(/\(\s*([a-z_]\w*)\s*-\s*([a-z_]\w*)\s*\)\s*\*\s*24/g,(m,a,b)=>/^(datetime|time)$/.test(typeOf(a))&&/^(datetime|time)$/.test(typeOf(b))?`hours(${b},${a})`:m);
+  if(bad)return null;
+  const okIds=new Set([...Object.values(map).map(x=>x.key),...RESERVED]);
+  if(!/^[\w\s+\-*/%(),.]*$/.test(s)||/\.[A-Za-z_]/.test(s)||!(s.match(/[A-Za-z_]\w*/g)||[]).every(n=>okIds.has(n)))return null;
+  return s;
+}
+const XLSXcol=l=>l.split("").reduce((a,ch)=>a*26+ch.charCodeAt(0)-64,0)-1;
+
+function importExcel(file){
+  if(typeof XLSX==="undefined")return alert("Excel library did not load — check your internet connection.");
+  file.arrayBuffer().then(buf=>{
+    const wb=XLSX.read(buf,{type:"array",cellDates:true,cellFormula:true});
+    const sh=wb.SheetNames.map(n=>({n,a:xlAnalyze(XLSX,wb.Sheets[n])})).filter(x=>x.a);
+    if(!sh.length)return alert("No table with a header row was found in this file.");
+    const base=file.name.replace(/\.[^.]+$/,"").replace(/[_]+/g," ");
+    const paint=i=>{const {a}=sh[i];$("impBody").innerHTML=`${a.wide?'<div class="notice">Wide monthly sheet detected — only the first copy of each repeated column is imported. For daily fuel entry use the “+ Fuel Withdraw template” and the Fuel Sheet page.</div>':""}
+      <p class="muted">${a.cols.length} columns detected • ${a.cols.filter(c=>c.formula).length} formulas converted • ${a.cols.filter(c=>c.excel&&!c.formula).length} formulas could not be converted</p>
+      <div class="tablewrap"><table><tr><th>Field</th><th>Type</th><th>Formula</th></tr>${a.cols.map(c=>`<tr><td>${esc(c.label)}</td><td>${c.type}${c.options?" ("+esc(c.options)+")":""}</td><td>${c.formula?'<span class="ok">✓ '+esc(c.formula)+"</span>":c.excel?'<span class="error">⚠ '+esc(c.excel.slice(0,60))+" (enter manually)</span>":"—"}</td></tr>`).join("")}</table></div>`};
+    showDialog("Import Excel → Form Template",`<div class="field"><label>Form name</label><input id="impName" value="${esc(base)}"></div>
+      ${sh.length>1?`<div class="field"><label>Sheet</label><select id="impSheet">${sh.map((x,i)=>`<option value="${i}">${esc(x.n)}</option>`).join("")}</select></div>`:""}
+      <div id="impBody"></div><p><button class="btn primary" id="impGo">Create template</button></p>`);
+    let cur=0;paint(0);if($("impSheet"))$("impSheet").onchange=e=>{cur=+e.target.value;paint(cur)};
+    $("impGo").onclick=async()=>{
+      const name=$("impName").value.trim();if(!name)return alert("Form name required");
+      const fields=sh[cur].a.cols.map(c=>({label:c.label,key:c.key,type:c.type,show:true,...(c.options?{options:c.options}:{}),...(c.formula?{formula:c.formula}:{}),...(c.excel&&!c.formula?{note:"Excel: "+c.excel}:{})}));
+      try{await saveNewForm(baseForm(name,"📊",fields));log("form imported from Excel",name);closeDialog();alert("Template created. Open it with Edit to adjust fields.")}catch(e){alert(e.message)}
+    };
+  }).catch(e=>alert("Could not read file: "+e.message));
+}
+function viewRecord(id){
+  const r=cache.records[id];if(!r)return;const f=cache.forms[r.formId];
+  const keys=[...(f?.fields||[]).filter(x=>x.show!==false).map(x=>x.key),...Object.keys(r.data||{})].filter((k,i,a)=>a.indexOf(k)===i&&r.data?.[k]!==undefined);
+  showDialog(r.formName,`<p class="muted">${esc(r.userName)} • ${esc(zoneName(r.zoneId))} • ${new Date(r.createdAt).toLocaleString()}</p><div class="tablewrap"><table>${keys.map(k=>`<tr><th>${esc(r.labels?.[k]||k)}</th><td style="white-space:normal">${esc(typeof r.data[k]==="boolean"?(r.data[k]?"Yes":"No"):r.data[k])}</td></tr>`).join("")}</table></div>`);
+}
+/* ===== Fuel Sheet (monthly matrix like the Excel) ===== */
+let fuelMonth=new Date().toISOString().slice(0,7);
+function fuelData(m){
+  const [Y,M]=m.split("-").map(Number),days=new Date(Y,M,0).getDate(),people={},use=[];
+  const num=(d,...ks)=>{for(const k of ks)if(d[k]!==undefined&&d[k]!=="")return Number(d[k]);return null};
+  scoped(cache.records).forEach(([,r])=>{
+    const d=r.data||{},dt=String(r.date||"").slice(0,10);
+    if(d.used_fuel!==undefined&&dt.slice(0,7)===m)use.push({name:d.operator_name||r.userName,date:dt,used:d.used_fuel,purpose:d.purpose||"",site:d.site||""});
+    const recv=num(d,"fuel_received","fuel_recv"),man=num(d,"pg_run_h","pg_run"),auto=num(d,"runtime","claimed_pg_rh"),hand=num(d,"fuel_in_hand");
+    if(recv===null&&man===null&&auto===null&&hand===null)return;
+    const k=r.tokenId||r.userName,p=people[k]||(people[k]={name:r.userName,zone:r.zoneId,day:{},before:null}),key=dt+String(r.createdAt||0).padStart(15,"0");
+    if(dt.slice(0,7)<m){if(hand!==null&&(!p.before||key>p.before.k))p.before={k:key,v:hand};return}
+    if(dt.slice(0,7)!==m)return;
+    const dd=Number(dt.slice(8,10)),o=p.day[dd]||(p.day[dd]={recv:0,man:0,auto:0,hand:null,hk:""});
+    o.recv+=recv||0;o.man+=man||0;o.auto+=auto||0;if(hand!==null&&key>o.hk){o.hand=hand;o.hk=key}
+  });
+  const rows=Object.values(people).map(p=>{
+    let recv=0,pg=0,hand=null;
+    Object.keys(p.day).map(Number).sort((a,b)=>a-b).forEach(d=>{const o=p.day[d];recv+=o.recv;pg+=o.auto||o.man;if(o.hand!==null)hand=o.hand});
+    return {...p,open:p.before?p.before.v:null,recv:+recv.toFixed(2),pg:+pg.toFixed(2),hand,cph:pg>0&&hand!==null?+((recv-hand)/pg).toFixed(3):null};
+  }).sort((a,b)=>a.name.localeCompare(b.name));
+  const R=rows.reduce((a,r)=>a+r.recv,0),H=rows.reduce((a,r)=>a+(r.hand||0),0),P=rows.reduce((a,r)=>a+r.pg,0),burnt=+(R-H).toFixed(2);
+  return {days,rows,burnt,avg:P>0?+(burnt/P).toFixed(3):0,pg:+P.toFixed(2),use,Y,M};
+}
+function fuelPage(){
+  const d=fuelData(fuelMonth),mn=new Date(d.Y,d.M-1,1).toLocaleString("en",{month:"short"}),v=x=>x===null||x===undefined?"":x;
+  const dayCols=Array.from({length:d.days},(_,i)=>i+1);
+  return `<div class="row"><h2>Fuel Sheet</h2><input type="month" id="fuelM" value="${fuelMonth}" class="btn"><button class="btn" id="fuelX">Export Excel</button></div>
+  ${profile.role==="user"?'<p class="muted">Only your own row is shown.</p>':""}
+  <div class="grid"><div class="panel"><div class="muted">Fuel Burnt (L)</div><div class="stat" data-k="fb" data-count="${d.burnt}">${d.burnt}</div></div><div class="panel"><div class="muted">AVG CMPT (L/H)</div><div class="stat" data-k="fa" data-count="${d.avg}">${d.avg}</div></div><div class="panel"><div class="muted">Total PG Run (H)</div><div class="stat" data-k="fp" data-count="${d.pg}">${d.pg}</div></div></div>
+  ${isMob()?fuelCards(d):""}<div class="panel tablewrap"><table class="keep"><tr><th rowspan="2">Operator</th><th rowspan="2">Zone</th><th rowspan="2">Opening In Hand</th><th rowspan="2">Total Fuel Received</th><th rowspan="2">Total PG Run(H)</th><th rowspan="2">Total Fuel In Hand</th><th rowspan="2">CPH</th>${dayCols.map(i=>`<th colspan="3" style="text-align:center">${i} ${mn}</th>`).join("")}</tr>
+  <tr>${dayCols.map(()=>"<th>Fuel recv.</th><th>PG Run(H)</th><th>Fuel In Hand</th>").join("")}</tr>
+  ${d.rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(zoneName(r.zone))}</td><td>${v(r.open)}</td><td>${r.recv}</td><td>${r.pg}</td><td>${v(r.hand)}</td><td>${v(r.cph)}</td>${dayCols.map(i=>{const o=r.day[i];return o?`<td>${o.recv||""}</td><td>${o.auto||o.man||""}</td><td>${v(o.hand)}</td>`:"<td></td><td></td><td></td>"}).join("")}</tr>`).join("")||`<tr><td colspan="7">No fuel data for this month.</td></tr>`}</table></div>
+  <div class="panel tablewrap"><h3>Fuel Usage</h3><table><tr><th>Name</th><th>Date</th><th>Used Fuel</th><th>Purpose</th><th>Site</th></tr>${d.use.map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.date)}</td><td>${esc(u.used)}</td><td>${esc(u.purpose)}</td><td>${esc(u.site)}</td></tr>`).join("")||'<tr><td colspan="5">None</td></tr>'}</table></div>`;
+}
+function exportFuelXLSX(){
+  const d=fuelData(fuelMonth),mn=new Date(d.Y,d.M-1,1).toLocaleString("en",{month:"short"}),v=x=>x===null||x===undefined?"":x,dc=Array.from({length:d.days},(_,i)=>i+1);
+  const aoa=[["","","","","","","",...dc.flatMap(i=>[`${i} ${mn}`,"",""])],["Operator","Zone","Opening In Hand","Total Fuel Received","Total PG Run(H)","Total Fuel In Hand","CPH",...dc.flatMap(()=>["Fuel recv.","PG Run(H)","Fuel In Hand"])],
+    ...d.rows.map(r=>[r.name,zoneName(r.zone),v(r.open),r.recv,r.pg,v(r.hand),v(r.cph),...dc.flatMap(i=>{const o=r.day[i];return o?[o.recv||"",o.auto||o.man||"",v(o.hand)]:["","",""]})]),
+    [],["","","","","Fuel Burnt",d.burnt],["","","","","AVG CMPT",d.avg],["","","","","Total PG Run",d.pg],[],["Name","Date","Used Fuel","Purpose","Site"],...d.use.map(u=>[u.name,u.date,u.used,u.purpose,u.site])];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),"Fuel withdraw");XLSX.writeFile(wb,`RAFINOOR-Fuel-${fuelMonth}.xlsx`);log("fuel sheet export",fuelMonth);
+}
+function exportXLSX(entries,label){
+  if(typeof XLSX==="undefined")return alert("Excel library did not load — check your internet connection.");
+  if(!entries.length)return alert("No records to export.");
+  const by={};entries.forEach(([,r])=>{const k=r.formId||r.formName;(by[k]=by[k]||[]).push(r)});
+  const wb=XLSX.utils.book_new(),names=new Set();
+  Object.entries(by).forEach(([fid,list])=>{
+    const f=cache.forms[fid],keys=[],lab={},typ={};
+    (f?.fields||[]).forEach(x=>{if(x.show!==false){keys.push(x.key);lab[x.key]=x.label;typ[x.key]=x.type}});
+    list.forEach(r=>Object.keys(r.data||{}).forEach(k=>{if(!keys.includes(k)){keys.push(k);lab[k]=r.labels?.[k]||k}}));
+    const conv=(k,x)=>{if(x===undefined||x===null||x==="")return "";if(typ[k]==="datetime"||typ[k]==="date"){const d=dt(x);if(d)return d}return x};
+    const aoa=[[...keys.map(k=>lab[k]),"Submitted By","Zone","Submitted At"],...list.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0)).map(r=>[...keys.map(k=>conv(k,r.data?.[k])),r.userName,zoneName(r.zoneId),new Date(r.createdAt)])];
+    const ws=XLSX.utils.aoa_to_sheet(aoa,{cellDates:true});
+    Object.keys(ws).forEach(a=>{if(a[0]!=="!"&&ws[a].t==="d")ws[a].z="yyyy-mm-dd hh:mm"});
+    ws["!cols"]=aoa[0].map(()=>({wch:18}));
+    let n=String(list[0].formName||"Sheet").replace(/[\\/?*\[\]:]/g,"").slice(0,28)||"Sheet",i=2,b=n;while(names.has(n))n=b+" "+i++;names.add(n);
+    XLSX.utils.book_append_sheet(wb,ws,n);
+  });
+  XLSX.writeFile(wb,"RAFINOOR-"+(label?label.replace(/\s+/g,"-")+"-"+new Date().toISOString().slice(0,10):Object.keys(by).length===1?[...names][0].replace(/\s+/g,"-"):"Reports")+".xlsx");log("excel export",label||"");toast("Excel download started","ok");
+}
+</script>
+</body>
+</html>
